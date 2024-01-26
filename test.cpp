@@ -188,31 +188,58 @@ void handleNewConnection(int server_fd, int kq, std::map<int, time_t>& clientAct
 
 void handleClientRequest(int client_fd, const std::string& httpResponse, std::map<int, time_t>& clientActivity)
 {
-	char buffer[1024] = {0};
+	char 		buffer[1024] = {0};
+
 	std::cout << "Client request, socket: " << client_fd << std::endl;
+
 	ssize_t valread = read(client_fd, buffer, 1024);
+
+	static int	to_read = 0;
+	static bool	is_post_body  = 0;
 
 	if (valread > 0)
 	{
-		std::string buf2;
-		buf2 = buffer;
-		HttpRequest request(buf2, client_fd);
-
-
-
-		// Display request in entire
-		std::cout << std::endl << "Client request in class : " << std::endl;
-		std::cout << "method : " << request.method << std::endl;
-		std::cout << "uri : " << request.uri << std::endl;
-		std::cout << "httpVersion : " << request.httpVersion << std::endl;
-		std::map<std::string, std::string>::iterator it;
-		for (it = request.headers.begin(); it != request.headers.end(); it++)
+		std::string buf2(buffer, valread);
+		
+		static HttpRequest	request;
+		if (!is_post_body)
 		{
-			std::cout << it->first << " <-> " << it->second << std::endl;
+			request = HttpRequest(buf2, client_fd);
+			if (request.method == "POST")
+			{
+				is_post_body = 1;
+				to_read = request.headers["Content-Length"].empty() ? 0 : std::atoi(request.headers["Content-Length"].c_str());
+			}
 		}
-		std::cout << "body : " << request.body << std::endl;
+		else
+		{
+			request.rawBody += buf2;
+			to_read -= valread;
+			if (to_read <= 0)
+			{
+				is_post_body = 0;
+				to_read = 0;
+			}
+		}
 
-		request.HandleRequest();
+		std::ofstream outfile("test.txt");
+		if (!is_post_body)
+		{
+			outfile << std::endl << "Client request in class : " << std::endl;
+			outfile << "method : " << request.method << std::endl;
+			outfile << "uri : " << request.uri << std::endl;
+			outfile << "httpVersion : " << request.httpVersion << std::endl;
+			std::map<std::string, std::string>::iterator it;
+			for (it = request.headers.begin(); it != request.headers.end(); it++)
+			{
+				outfile << it->first << " <-> " << it->second << std::endl;
+			}
+			outfile << "body : " << request.rawBody << std::endl;
+		}
+		outfile.close();
+
+		if (!is_post_body)
+			request.HandleRequest();
 		clientActivity[client_fd] = time(nullptr);  // Mettre à jour l'heure de la dernière activité
 
 	}
