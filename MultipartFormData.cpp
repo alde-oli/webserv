@@ -33,21 +33,29 @@ MultipartFormData::MultipartFormData(std::string contentType, std::string rawCon
 	std::string delimiter = "--" + boundary;
 	std::string delimiterEnd = "--" + boundary + "--";
 
-	std::istringstream	rawStream(rawContent);
-	std::string			line;
-	contentData 		data;
-	while(getline(rawStream, line, '\n'))
+	std::istringstream rawStream(rawContent);
+	std::string line;
+	contentData data;
+	while (getline(rawStream, line, '\n'))
 	{
 		if (line == delimiter)
 		{
 			if (data.name != "")
+			{
+				if (data.content.size() >= 4)
+					data.content = data.content.substr(2, data.content.size() - 4);
 				content.push_back(data);
-			continue ;
+			}
+			continue;
 		}
 		else if (line == delimiterEnd)
 		{
 			if (data.name != "")
+			{
+				if (data.content.size() >= 4)
+					data.content = data.content.substr(2, data.content.size() - 4);
 				content.push_back(data);
+			}
 			break;
 		}
 		else if (line.find("Content-Disposition: form-data; name=") != std::string::npos)
@@ -62,6 +70,5 @@ MultipartFormData::MultipartFormData(std::string contentType, std::string rawCon
 		{
 			data.content += line + "\n";
 		}
-
 	}
 }

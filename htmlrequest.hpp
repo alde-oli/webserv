@@ -20,5 +20,5 @@ class HttpRequest
 		HttpRequest(const HttpRequest &other) {};
 		~HttpRequest();
 
-		int									HandleRequest();
+		bool								HandleRequest(std::map<int, std::string>& clientDataToSend, int client_fd);
 };

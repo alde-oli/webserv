@@ -1,0 +1,6 @@
+8---------------------------------------8
+QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ
+			test.txt content
+QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ
+
+8---------------------------------------8
