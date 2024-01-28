@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Suppression de Fichier</title>
+    <link rel="stylesheet" href="css/killkitten.css">
+    <script>
+        function deleteFile(fileName) {
+            fetch(`/kittenland/${fileName}`, { method: 'DELETE' })
+            .then(response => response.text())
+            .then(data => {
+                alert("Résultat de la suppression: " + data);
+                location.reload(); // Recharger l'iframe après la suppression
+            })
+            .catch(error => console.error('Erreur:', error));
+        }
+    </script>
+</head>
+<body>
+    <h1>Supprimer un Fichier dans Kittenland</h1>
+    <!-- Remplacer 'votre_dossier' par le chemin relatif ou absolu du dossier à lister -->
+    <iframe src="/cgin/list_files.py?directory=kittenland"></iframe>
+</body>
+<footer>
+    <p><a href="index.html">Page principale</a></p>
+</footer>
+</html>

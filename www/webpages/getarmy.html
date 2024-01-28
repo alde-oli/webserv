@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Téléchargement de Fichiers</title>
+    <link rel="stylesheet" href="css/getarmy.css">
+    <script>
+        // Fonction pour transformer les noms de fichiers en liens de téléchargement
+        function transformFileList() {
+            var iframe = document.getElementById('fileListFrame');
+            var iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+            
+            // Attendre que le contenu de l'iframe soit chargé
+            iframe.onload = function() {
+                var fileList = iframeDocument.getElementsByTagName('li');
+                for (var i = 0; i < fileList.length; i++) {
+                    var fileName = fileList[i].innerText;
+                    var downloadLink = document.createElement('a');
+                    downloadLink.href = `/download/${fileName}`; // Modifier le chemin selon la configuration de votre serveur
+                    downloadLink.innerText = fileName;
+                    downloadLink.download = fileName;
+
+                    fileList[i].innerHTML = '';
+                    fileList[i].appendChild(downloadLink);
+                }
+            };
+        }
+    </script>
+</head>
+<body onload="transformFileList()">
+    <h1>Télécharger des Fichiers depuis le Dossier Download</h1>
+    <iframe id="fileListFrame" src="/cgi-bin/list_files.py?directory=download" style="width:100%; height:300px;"></iframe>
+</body>
+<footer>
+    <p><a href="index.html">Page principale</a></p>
+</footer>
+</html>
