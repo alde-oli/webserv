@@ -49,64 +49,55 @@ HttpRequest::HttpRequest(const std::string& requestString, int client_fd)
 	}
 }
 
-std::string getCgiArgs(std::string uri)
-{
-	std::string args = "";
-	size_t pos = uri.find("?");
-	if (pos != std::string::npos)
-		args = uri.substr(pos + 1);
-	return args;
+std::string getCgiArgs(const std::string& uri) {
+    size_t pos = uri.find("?");
+    if (pos != std::string::npos && pos + 1 < uri.size()) {
+        return uri.substr(pos + 1);
+    }
+    return "";
 }
 
-bool handleCgi(HttpRequest& request, const std::string& args)
-{
-	std::istringstream argStream(args);
-	std::string arg;
-	int pid;
-	int pipefd[2];
-	if (pipe(pipefd))
-	{
-		perror("pipe");
-		return(EXIT_FAILURE);
-	}
-	request.uri = "/Users/alde-oli/Desktop/webserv/www" + request.uri;
-	request.uri = request.uri.substr(0, request.uri.find("?"));
-	std::cout << std::endl << std::endl << "cgi is " << request.uri << std::endl << std::endl;
 
-	std::cout << "args" << args << std::endl;
-	//make args become env by splitting on &
-	std::vector<std::string> envp;
-	while (std::getline(argStream, arg, '&'))
-	{
-		envp.push_back(arg);
-	}
-	// transfer envp to char **envp
-	char **env = new char*[envp.size() + 1];
-	for (size_t i = 0; i < envp.size(); i++)
-	{
-		env[i] = new char[envp[i].size() + 1];
-		strcpy(env[i], envp[i].c_str());
-	}
-	
+bool handleCgi(HttpRequest& request, const std::string& args) {
+    int pid;
+    int pipefd[2];
+    if (pipe(pipefd)) {
+        perror("pipe");
+        return false;
+    }
 
-	// [Préparer le pipe et le fork comme dans l'exemple précédent]
-	pid = fork();
+    std::string cgiPath = "/Users/alde-oli/Desktop/webserv/www/webpages" + request.uri.substr(0, request.uri.find("?"));
+    std::cout << "cgi is " << cgiPath << std::endl;
 
-	if (pid == 0)
-	{
-		// Processus enfant
-		// [Configurer le pipe]
-		close(pipefd[0]); // Fermer le côté lecture du pipe
-		dup2(pipefd[1], STDOUT_FILENO); // Rediriger stdout vers le pipe
-		close(pipefd[1]); // Fermer le côté écriture du pipe
+    // Préparation des arguments et des variables d'environnement
+    std::vector<std::string> envp;
+    std::istringstream argStream(args);
+    std::string arg;
+    while (std::getline(argStream, arg, '&')) {
+        envp.push_back(arg);
+    }
 
-		// Exécuter le script CGI avec le nouvel environnement
-		execve(request.uri.c_str(), NULL, env);
-		// Si execve échoue
-		perror("execve");
-		exit(EXIT_FAILURE);
-	} else
-	{
+    char **env = new char*[envp.size() + 1];
+    for (size_t i = 0; i < envp.size(); ++i) {
+        env[i] = new char[envp[i].size() + 1];
+        std::strcpy(env[i], envp[i].c_str());
+    }
+    env[envp.size()] = NULL;
+
+    // Aucun argument de ligne de commande supplémentaire n'est transmis
+    char *argv[] = {NULL};
+
+    pid = fork();
+    if (pid == 0) {
+        // Processus enfant
+        close(pipefd[0]); // Fermer le côté lecture du pipe
+        dup2(pipefd[1], STDOUT_FILENO); // Rediriger stdout vers le pipe
+        close(pipefd[1]); // Fermer le côté écriture du pipe
+
+        execve(cgiPath.c_str(), argv, env);
+        perror("execve");
+        exit(EXIT_FAILURE);
+    } else {
 		// Processus parent
 		// [Lire la sortie du CGI, attendre le processus enfant, et envoyer la réponse]
 		std::string cgiOutput;
@@ -144,7 +135,13 @@ bool handleCgi(HttpRequest& request, const std::string& args)
 		}
 	}
 
-	return 0;
+    // Nettoyage de l'environnement
+    for (size_t i = 0; i < envp.size(); ++i) {
+        delete[] env[i];
+    }
+    delete[] env;
+
+    return true;
 }
 
 bool handleGet(HttpRequest& request, std::map<int, std::string>& dToSend, int clientFd) {
@@ -155,9 +152,9 @@ bool handleGet(HttpRequest& request, std::map<int, std::string>& dToSend, int cl
     std::string resourcePath;
     std::string contentType;
 
-    if (request.uri.find("/doc") == 0)
+    if (request.uri.find("/download") == 0)
 	{
-        resourcePath = "www" + request.uri;
+        resourcePath = "www/webpages" + request.uri;
         // Déterminer le type de contenu basé sur l'extension du fichier
         contentType = request.uri.find(".html") != std::string::npos ? "text/html" :
 					  request.uri.find(".css") != std::string::npos ? "text/css" :
@@ -183,7 +180,7 @@ bool handleGet(HttpRequest& request, std::map<int, std::string>& dToSend, int cl
 					  "application/octet-stream";
     } else
 	{
-        resourcePath = "www" + request.uri;
+        resourcePath = "www/webpages" + request.uri;
         contentType = "text/html";
     }
 
@@ -226,7 +223,7 @@ bool handlePost(HttpRequest& request, std::map<int, std::string>& dToSend, int c
                 continue;
 
             // Chemin complet du fichier
-            std::string filePath = "www/doc/" + request.formattedBody.content[i].filename;
+            std::string filePath = "www/webpages/kittenland/" + request.formattedBody.content[i].filename;
             std::ofstream file(filePath, std::ios::out | std::ios::trunc | std::ios::binary);
 
             if (file.is_open())
@@ -266,9 +263,9 @@ bool handleDelete(HttpRequest& request, std::map<int, std::string>& dToSend, int
 	std::cout << "DELETE request" << std::endl;
 	std::string response;
 
-	if (request.uri.length() <= 4 || request.uri.find("/doc/"))
+	if (request.uri.length() <= 4 || request.uri.find("/kittenland/"))
 		return false;
-	std::string resourcePath = "www" + request.uri;
+	std::string resourcePath = "www/webpages/" + request.uri;
 
 	if (remove(resourcePath.c_str()) != 0)
 		response = "HTTP/1.1 404 Not Found\r\n\r\n";
