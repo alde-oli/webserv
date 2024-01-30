@@ -1,31 +1,3 @@
-
-Client request in class : 
-method : POST
-uri : /kittenland
-httpVersion : HTTP/1.1
-Accept <-> text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
-Accept-Encoding <-> gzip, deflate, br
-Accept-Language <-> en-US,en;q=0.9
-Cache-Control <-> max-age=0
-Connection <-> keep-alive
-Content-Length <-> 3232
-Content-Type <-> multipart/form-data; boundary=----WebKitFormBoundaryxS3Yqc9lCGsT3pX2
-Host <-> 127.0.0.1:4040
-Origin <-> http://127.0.0.1:4040
-Referer <-> http://127.0.0.1:4040/invade.html
-Sec-Fetch-Dest <-> document
-Sec-Fetch-Mode <-> navigate
-Sec-Fetch-Site <-> same-origin
-Sec-Fetch-User <-> ?1
-Upgrade-Insecure-Requests <-> 1
-User-Agent <-> Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36
-sec-ch-ua <-> "Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"
-sec-ch-ua-mobile <-> ?0
-sec-ch-ua-platform <-> "macOS"
-body : ------WebKitFormBoundaryxS3Yqc9lCGsT3pX2
-Content-Disposition: form-data; name="fileUpload"; filename="main.c"
-Content-Type: application/octet-stream
-
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
@@ -125,6 +97,3 @@ int	main(int ac, char *av[])
 	mlx_loop(scene.mlx->mlx);
 	return (0);
 }
-
-------WebKitFormBoundaryxS3Yqc9lCGsT3pX2--
-

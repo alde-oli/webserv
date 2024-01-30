@@ -16,6 +16,10 @@ if __name__ == "__main__":
 
     result = addition(param1, param2)
 
+    data = """
+    html code
+    """
+    print(data)
     # Générer la sortie CGI
     print("Content-type: text/html; charset=utf-8\n")
     print("<html><head><title>CGI Python</title></head><body>")

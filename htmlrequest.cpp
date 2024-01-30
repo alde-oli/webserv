@@ -58,6 +58,7 @@ std::string getCgiArgs(const std::string& uri) {
 }
 
 
+//Votre programme doit appeler le CGI avec le fichier demandé comme premier argument. ??aled albaud??
 bool handleCgi(HttpRequest& request, const std::string& args) {
     int pid;
     int pipefd[2];
@@ -66,7 +67,7 @@ bool handleCgi(HttpRequest& request, const std::string& args) {
         return false;
     }
 
-    std::string cgiPath = "/Users/alde-oli/Desktop/webserv/www/webpages" + request.uri.substr(0, request.uri.find("?"));
+    std::string cgiPath = "/Users/alde-oli/Desktop/ws_old/www/webpages" + request.uri.substr(0, request.uri.find("?"));
     std::cout << "cgi is " << cgiPath << std::endl;
 
     // Préparation des arguments et des variables d'environnement
@@ -194,8 +195,9 @@ bool handleGet(HttpRequest& request, std::map<int, std::string>& dToSend, int cl
 
     std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     file.close();
+    std::string contentDisposition = request.uri.find("/download") == 0 ? "attachment; filename=" : "inline; filename=" + resourcePath.substr(resourcePath.find_last_of("/") + 1);
 
-    std::string response = "HTTP/1.1 200 OK\r\nContent-Type: " + contentType + "\r\nContent-Length: " + std::to_string(content.length()) + "\r\n\r\n" + content;
+    std::string response = "HTTP/1.1 200 OK\r\nContent-Type: " + contentDisposition + contentType + "\r\nContent-Length: " + std::to_string(content.length()) + "\r\n\r\n" + content;
     dToSend[clientFd] = response;
 
     // Afficher seulement les informations essentielles pour le débogage
@@ -216,9 +218,14 @@ bool handlePost(HttpRequest& request, std::map<int, std::string>& dToSend, int c
     if (request.headers["Content-Type"].find("multipart/form-data") != std::string::npos)
     {
         request.formattedBody = MultipartFormData(request.headers["Content-Type"], request.rawBody);
+        std::cout << "Multipart form data received with " << request.formattedBody.content.size() << " files" << std::endl;
+        std::cout << "Boundary: " << request.formattedBody.boundary << std::endl;
         for (size_t i = 0; i < request.formattedBody.content.size(); i++)
         {
             // Vérifier si le nom de fichier est non vide
+            std::cout << "File " << i << " name: " << request.formattedBody.content[i].filename << std::endl;
+            std::cout << "File " << i << " size: " << request.formattedBody.content[i].content.size() << std::endl;
+            std::cout << "File " << i << " content: " << request.formattedBody.content[i].content << std::endl;
             if (request.formattedBody.content[i].filename.empty())
                 continue;
 
