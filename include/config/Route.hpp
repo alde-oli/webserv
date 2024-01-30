@@ -26,4 +26,5 @@ class Route
 		std::string						_root;
 		std::string						_page;
 		std::vector<std::string>		_methods;
+		bool							_listing;
 };
