@@ -8,7 +8,7 @@
 class ServerConfig
 {
 	public:
-		ServerConfig();
+		ServerConfig(std::string id);
 		ServerConfig(const ServerConfig &other);
 		~ServerConfig();
 
@@ -19,7 +19,7 @@ class ServerConfig
 		void							setIsDefault(bool isDefault);
 		void							setDefaultPage(const std::string &defaultPage);
 		void							setMaxBodySize(int maxBodySize);
-		void							addRoute(const Route &route);
+		void							addRoute(const Route &route, const std::string &routeName);
 		void							addError(int errorCode, const std::string &errorPage);
 		void							addCgiExtension(const std::string &extension);
 		void							addCgiPath(const std::string &path);
@@ -36,18 +36,19 @@ class ServerConfig
 
 		std::string						getErrorPage(int errorCode) const;
 
-		const std::vector<std::string>	&getCgiExtensions() const;
+		const std::vector<std::string	&getCgiExtensions() const;
 		const std::vector<std::string>	&getCgiPaths() const;
 
 
 	private:
+		const std::string				_id;
 		std::string						_serverName;
 		sockaddr_in						_serverAddr;
 		bool							_isDefault;
 		std::string						_defaultPage;
 		int								_maxBodySize;
 
-		std::vector<Route>				_routes;
+		std::map<std::string, Route>	_routes;
 		Error							_errors;
 		CGI								_cgi;
 };
