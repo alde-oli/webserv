@@ -156,7 +156,46 @@ bool    &Route::isListing() const
 	return (this->_listing);
 }
 
-std::string &Route::listRoute() const
+std::string listRoute() const
 {
-	
+	std::stringstream	html;
+	DIR*				dir;
+	struct dirent*		ent;
+
+	html << "<!DOCTYPE html><html><head><title>Liste des Fichiers</title></head><body>";
+	html << "<h1>Liste des Fichiers pour " << root << "</h1><ul>";
+	if ((dir = opendir(root.c_str())) != NULL)
+	{
+		while ((ent = readdir(dir)) != NULL)
+		{
+			std::string fileName = ent->d_name;
+			if (fileName != "." && fileName != "..")
+				html << "<li><a href='" << fileName << "'>" << fileName << "</a></li>";
+		}
+		closedir(dir);
+	}
+	else
+		html << "<li>Erreur lors de l'ouverture du répertoire.</li>";
+	html << "</ul></body></html>";
+	return html.str();
+}
+
+bool    &Route::isDownload() const
+{
+	return (this->_isDownload);
+}
+
+const std::string   &Route::getDownloadDir() const
+{
+	return (this->_downloadDir);
+}
+
+bool    &Route::isRedir() const
+{
+	return (this->_isRedir);
+}
+
+const std::string   &Route::getRedirDir() const
+{
+	return (this->_redirDir);
 }
