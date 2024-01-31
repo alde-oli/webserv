@@ -15,6 +15,16 @@ int registerWriteEvent(int kq, int fd);
 int handleClientWrite(int fd, std::map<int, std::string>& clientActivity);
 int unregisterWriteEvent(int kq, int fd);
 
+static int close_and_perror(char *str, int fd)
+{
+	perror(str);
+	if (fd)
+	{
+		close (fd);
+	}
+	return (-1);
+}
+
 int main()
 {
 	std::map<int, std::string> dataToSend;
@@ -36,29 +46,19 @@ int main()
 	setsockopt(server_fd, SOL_SOCKET, SO_NOSIGPIPE, &val, sizeof(val));
 
 	if (setsockopt(server_fd, SOL_SOCKET, SO_SNDTIMEO, (char *)&sendTimeout, sizeof(sendTimeout)) < 0)
-	{
-		perror("setsockopt");
-		return -1;
-	}
+		return (close_and_perror("setsockopt", 0));
 
 	// Créer une kqueue
 	int kq = kqueue();
 
 	if (kq == -1)
-	{
-		perror("kqueue");
-		return -1;
-	}
+		return (close_and_perror("kqueue", 0));
 
 	struct kevent kev;
 	EV_SET(&kev, server_fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 	// Si error
 	if (kevent(kq, &kev, 1, NULL, 0, NULL) == -1)
-	{
-		perror("kevent add server_fd");
-		close(server_fd);
-		return -1;
-	}
+		return (close_and_perror("kevent add server_fd", server_fd));
 
 	struct timespec timeout;
 	timeout.tv_sec = 30;
@@ -74,10 +74,7 @@ int main()
 		int nev = kevent(kq, NULL, 0, events, 32, &timeout);
 
 		if (nev < 0)
-		{
-			perror("kevent wait");
-			return -1;
-		}
+			return (close_and_perror("kevent wait", 0));
 
 		for (int i = 0; i < nev; i++)
 		{
@@ -97,7 +94,7 @@ int main()
 			else if (events[i].filter == EVFILT_READ)
 			{
 				// Gérer la demande du client
-				std::cout << "Client request, socket: " << fd << std::endl;
+				std::cout << "[ Client request ] socket ID: " << fd << std::endl;
 				bool hasDataToSend = handleClientRequest(fd, clientActivity, dataToSend);
 				if (hasDataToSend)
 				{
@@ -136,26 +133,16 @@ int setupServerSocket()
 
 	// Créer le socket
 	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
-	{
-		perror("socket failed");
-		return -1;
-	}
+		return (close_and_perror("socket failed", 0));
 
 	// Rendre le socket non bloquant
 	int flags = fcntl(server_fd, F_GETFL, 0);
 	if (flags == -1)
-	{
-		perror("fcntl F_GETFL");
-		close(server_fd);
-		return -1;
-	}
+		return (close_and_perror("fcntl F_GETFL", server_fd));
+
 	flags |= O_NONBLOCK;
 	if (fcntl(server_fd, F_SETFL, flags) == -1)
-	{
-		perror("fcntl F_SETFL O_NONBLOCK");
-		close(server_fd);
-		return -1;
-	}
+		return (close_and_perror("fcntl F_SETFL O_NONBLOCK", server_fd));
 
 	// Définir l'adresse du serveur
 	address.sin_family = AF_INET;
@@ -164,19 +151,11 @@ int setupServerSocket()
 
 	// Lier le socket
 	if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
-	{
-		perror("bind failed");
-		close(server_fd);
-		return -1;
-	}
+		return (close_and_perror("bind failed", server_fd));
 
 	// Mettre le serveur en mode écoute
 	if (listen(server_fd, 3) < 0)
-	{
-		perror("listen");
-		close(server_fd);
-		return -1;
-	}
+		return (close_and_perror("listen", server_fd));
 
 	std::cout << "[ Server listening on port " << PORT << " ]" << std::endl;
 
@@ -189,10 +168,7 @@ int registerWriteEvent(int kq, int fd)
 	EV_SET(&kev, fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 
 	if (kevent(kq, &kev, 1, NULL, 0, NULL) == -1)
-	{
-		perror("registerWriteEvent: kevent");
-		return -1;
-	}
+		return (close_and_perror("registerWriteEvent: kevent", 0));
 	return 0;
 }
 
@@ -200,9 +176,7 @@ int handleClientWrite(int fd, std::map<int, std::string>& clientActivity)
 {
 	// Vérifier si le client a des données à envoyer
 	if (clientActivity.find(fd) == clientActivity.end() || clientActivity[fd].empty())
-	{
 		return -1; // Aucune donnée à envoyer ou client non reconnu
-	}
 
 	// Récupérer les données à envoyer
 	std::string dataToSend = clientActivity[fd];
@@ -212,10 +186,7 @@ int handleClientWrite(int fd, std::map<int, std::string>& clientActivity)
 
 	// Gérer les erreurs d'envoi
 	if (bytesSent < 0)
-	{
-		perror("send");
-		return -1;
-	}
+		return (close_and_perror("send", 0));
 
 	// Mettre à jour les données restantes à envoyer
 	if (bytesSent < static_cast<ssize_t>(dataToSend.size()))
@@ -238,10 +209,7 @@ int unregisterWriteEvent(int kq, int fd)
 	EV_SET(&kev, fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
 
 	if (kevent(kq, &kev, 1, NULL, 0, NULL) == -1)
-	{
-		perror("unregisterWriteEvent: kevent");
-		return -1;
-	}
+		return (close_and_perror("unregisterWriteEvent: kevent", 0));
 	return 0;
 }
 
@@ -254,24 +222,16 @@ int handleNewConnection(int server_fd, int kq, std::map<int, time_t>& clientActi
 	int new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen);
 	
 	if (new_socket < 0)
-	{
-		perror("accept");
-		return -1;
-	}
+		return (close_and_perror("accept", 0));
 
 	std::cout << "[ New client connected ] socket ID: " << new_socket << std::endl;
 
 	EV_SET(&change_event, new_socket, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 	
 	if (kevent(kq, &change_event, 1, NULL, 0, NULL) == -1)
-	{
-		perror("kevent add new socket");
-		close(new_socket);
-	}
+		return (close_and_perror("kevent add new socket", new_socket));
 	else
-	{
 		clientActivity[new_socket] = time(nullptr);  // Enregistrer l'heure de la dernière activité
-	}
 	return new_socket;
 }
 
@@ -351,8 +311,7 @@ bool handleClientRequest(int client_fd, std::map<int, time_t>& clientActivity, s
 	}
 	else
 	{
-		perror("read");
-		close(client_fd);
+		close_and_perror("read", client_fd);
 		clientActivity.erase(client_fd);  // Supprimer le client de la map
 	}
 	return hasDataToSend;
@@ -370,8 +329,6 @@ void checkClientTimeouts(std::map<int, time_t>& clientActivity, int timeout)
 			it = clientActivity.erase(it);  // Supprimer le client et avancer l'itérateur
 		}
 		else
-		{
 			++it;
-		}
 	}
 }
