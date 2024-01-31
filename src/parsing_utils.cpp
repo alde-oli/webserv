@@ -84,7 +84,7 @@ static int check_method(const std::string& single_method)
         return 0;
 }
 
-std::vector<std::string> set_method(const std::string& method)
+std::vector<std::string> setMethod(const std::string& method)
 {
     std::vector<std::string> stock;
     std::stringstream read_method(method);
@@ -110,7 +110,7 @@ std::vector<std::string> set_method(const std::string& method)
     return stock;
 }
 
-bool set_bool(std::string boolean)
+bool setBool(std::string boolean)
 {
 	bool value;
 
@@ -126,7 +126,7 @@ bool set_bool(std::string boolean)
 		cerr_and_exit("Error: bad boolean type: ", boolean, 1);
 }
 
-static long long int valid_size(std::string size)
+static long long int setSize(std::string size)
 {
 	int i = 0;
 	long long nbr;
@@ -179,4 +179,23 @@ long long int setBodySize(std::string size)
 	}
 	cerr_and_exit("Error: bad body size input: ", size, 1);
 	return (0);
+}
+
+bool isRouteValid(const std::string& chemin)²
+{
+    const std::string validChars = "abcdefghijklmnopqrstuvwxyz"
+                                          "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                          "0123456789"
+                                          "-._~/";
+    if (chemin.empty() || chemin[0] != '/')
+        return false;
+    if (chemin.find("//") != std::string::npos || chemin.find("/../") != std::string::npos || chemin.find("/./") != std::string::npos)
+        return false;
+    for (size_t i = 0; i < chemin.length(); ++i)
+	{
+        char c = chemin[i];
+        if (validChars.find(c) == std::string::npos)
+            return false;
+    }
+    return true;
 }

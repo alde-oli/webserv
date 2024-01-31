@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MultipartFormData.hpp"
+#include "publiclib.hpp"
 
 class HttpRequest
 {
