@@ -6,7 +6,6 @@ class Route
 {
 	public:
 		Route(std::string id);
-		Route(const Route &other);
 		~Route();
 
 		Route							&operator=(const Route &other);
@@ -23,10 +22,17 @@ class Route
 		bool							&isMethod(std::string requestMethod) const;
 
 	private:
+		Route();
+		Route(const Route &other);
+
 		const std::string				_id;
 		std::string						_route;
 		std::string						_root;
 		std::string						_page;
 		std::vector<std::string>		_methods;
 		bool							_listing;
+		bool							_isDownload;
+		std::string						_downloadDir;
+		bool							_isRedir;
+		std::string						_redirDir;
 };

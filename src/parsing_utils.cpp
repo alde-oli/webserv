@@ -179,7 +179,7 @@ static long long int valid_size(std::string size)
 	}
 }
 
-long long int set_body_size(std::string size)
+long long int setBodySize(std::string size)
 {
 	int		i = 0;
 	if (!size.empty()) 
