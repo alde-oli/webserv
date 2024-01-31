@@ -18,13 +18,32 @@ int unregisterWriteEvent(int kq, int fd);
 static int close_and_perror(char *str, int fd)
 {
 	perror(str);
+
 	if (fd)
-	{
 		close (fd);
-	}
+
 	return (-1);
 }
 
+static timeval ft_timeout(int sec, int usec)
+{
+	struct timeval sendTimeout;
+	
+	// Timeout en secondes
+	sendTimeout.tv_sec = sec;
+	// Timeout en microsecondes
+	sendTimeout.tv_usec = usec;
+	return (sendTimeout);
+}
+
+static timespec precise_ft_timeout(int sec, int nsec)
+{
+	struct timespec timeout;
+
+	timeout.tv_sec = sec;
+	timeout.tv_nsec = nsec;
+	return (timeout);
+}
 int main()
 {
 	std::map<int, std::string> dataToSend;
@@ -35,11 +54,7 @@ int main()
 
 	signal(SIGPIPE, SIG_IGN);
 
-	struct timeval sendTimeout;
-	// Timeout en secondes
-	sendTimeout.tv_sec = 300;
-	// Timeout en microsecondes
-	sendTimeout.tv_usec = 0;
+	struct timeval sendTimeout = ft_timeout(300, 0);
 
 	// Définir le timeout d'envoi sur le socket
 	int val = 1;
@@ -60,9 +75,7 @@ int main()
 	if (kevent(kq, &kev, 1, NULL, 0, NULL) == -1)
 		return (close_and_perror("kevent add server_fd", server_fd));
 
-	struct timespec timeout;
-	timeout.tv_sec = 30;
-	timeout.tv_nsec = 0;
+	struct timespec timeout = precise_ft_timeout(30, 0);
 
 	std::map<int, time_t> clientActivity;
 	// Timeout d'inactivité en secondes
@@ -75,7 +88,6 @@ int main()
 
 		if (nev < 0)
 			return (close_and_perror("kevent wait", 0));
-
 		for (int i = 0; i < nev; i++)
 		{
 			int fd = events[i].ident;
@@ -83,7 +95,6 @@ int main()
 			if (fd == server_fd && events[i].filter == EVFILT_READ)
 			{
 				// Gérer une nouvelle connexion
-				std::cout << "[ New connection ] socket ID is: " << fd << std::endl;
 				int client_fd = handleNewConnection(server_fd, kq, clientActivity);
 				if (client_fd != -1)
 				{
@@ -94,23 +105,16 @@ int main()
 			else if (events[i].filter == EVFILT_READ)
 			{
 				// Gérer la demande du client
-				std::cout << "[ Client request ] socket ID: " << fd << std::endl;
 				bool hasDataToSend = handleClientRequest(fd, clientActivity, dataToSend);
 				if (hasDataToSend)
-				{
-					// Enregistrez pour les événements d'écriture si nécessaire
 					registerWriteEvent(kq, fd); // Préparer l'événement, appliqué dans le prochain passage
-				}
 			}
 			else if (events[i].filter == EVFILT_WRITE)
 			{
 				// Gérer l'envoi de données au client
 				// Message spécifique qui peut être mit [ ici ]
 				if (handleClientWrite(fd, dataToSend) == -1)
-				{
-					// Préparer la désinscription, appliquée dans le prochain passage
-					unregisterWriteEvent(kq, fd);
-				}
+					unregisterWriteEvent(kq, fd); // Préparer la désinscription, appliquée dans le prochain passage
 			}
 		
 		}
@@ -118,7 +122,6 @@ int main()
 	}
 	// Fermer le socket serveur
 	close(server_fd);
-
 	return 0;
 }
 
@@ -152,13 +155,9 @@ int setupServerSocket()
 	// Lier le socket
 	if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
 		return (close_and_perror("bind failed", server_fd));
-
 	// Mettre le serveur en mode écoute
 	if (listen(server_fd, 3) < 0)
 		return (close_and_perror("listen", server_fd));
-
-	std::cout << "[ Server listening on port " << PORT << " ]" << std::endl;
-
 	return server_fd;
 }
 
@@ -224,8 +223,6 @@ int handleNewConnection(int server_fd, int kq, std::map<int, time_t>& clientActi
 	if (new_socket < 0)
 		return (close_and_perror("accept", 0));
 
-	std::cout << "[ New client connected ] socket ID: " << new_socket << std::endl;
-
 	EV_SET(&change_event, new_socket, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 	
 	if (kevent(kq, &change_event, 1, NULL, 0, NULL) == -1)
@@ -239,8 +236,6 @@ bool handleClientRequest(int client_fd, std::map<int, time_t>& clientActivity, s
 {
 	char 		buffer[1024] = {0};
 
-	std::cout << "[ Client request ] socket ID: " << client_fd << std::endl;
-
 	ssize_t valread = read(client_fd, buffer, 1024);
 
 	static int	to_read = 0;
@@ -250,8 +245,8 @@ bool handleClientRequest(int client_fd, std::map<int, time_t>& clientActivity, s
 	if (valread > 0)
 	{
 		std::string buf2(buffer, valread);
-		
 		static HttpRequest	request;
+
 		if (!is_post_body)
 		{
 			request = HttpRequest(buf2, client_fd);
@@ -277,35 +272,13 @@ bool handleClientRequest(int client_fd, std::map<int, time_t>& clientActivity, s
 				to_read = 0;
 			}
 		}
-
-		std::ofstream outfile("test.txt");
-
-		// Creation test.txt pour afficher la demande client
-		outfile << std::endl << "Client request in class : " << std::endl;
-		outfile << "method : " << request.method << std::endl;
-		outfile << "uri : " << request.uri << std::endl;
-		outfile << "httpVersion : " << request.httpVersion << std::endl;
-
-		std::map<std::string, std::string>::iterator it;
-		for (it = request.headers.begin(); it != request.headers.end(); it++)
-		{
-			outfile << it->first << " <-> " << it->second << std::endl;
-		}
-
-		outfile << "body : " << request.rawBody << std::endl;
-	
-		outfile.close();
-
 		if (!is_post_body)
-		{
 			hasDataToSend = request.HandleRequest(clientDataToSend, client_fd);
-		}
 		clientActivity[client_fd] = time(nullptr);  // Mettre à jour l'heure de la dernière activité
 
 	}
 	else if (valread == 0)
 	{
-		std::cout << "Client disconnected, socket: " << client_fd << std::endl;
 		close(client_fd);
 		clientActivity.erase(client_fd);  // Supprimer le client de la map
 	}
@@ -324,7 +297,6 @@ void checkClientTimeouts(std::map<int, time_t>& clientActivity, int timeout)
 	{
 		if (now - it->second > timeout)
 		{
-			std::cout << "Client timed out, socket: " << it->first << std::endl;
 			close(it->first);
 			it = clientActivity.erase(it);  // Supprimer le client et avancer l'itérateur
 		}
