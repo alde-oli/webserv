@@ -173,32 +173,23 @@ int registerWriteEvent(int kq, int fd)
 
 int handleClientWrite(int fd, std::map<int, std::string>& clientActivity)
 {
-	// Vérifier si le client a des données à envoyer
 	if (clientActivity.find(fd) == clientActivity.end() || clientActivity[fd].empty())
-		return -1; // Aucune donnée à envoyer ou client non reconnu
+		return -1;
 
-	// Récupérer les données à envoyer
 	std::string dataToSend = clientActivity[fd];
-
-	// Envoyer les données
 	ssize_t bytesSent = send(fd, dataToSend.c_str(), dataToSend.size(), 0);
 
-	// Gérer les erreurs d'envoi
 	if (bytesSent < 0)
 		return (close_and_perror("send", 0));
-
-	// Mettre à jour les données restantes à envoyer
 	if (bytesSent < static_cast<ssize_t>(dataToSend.size()))
 	{
-		// Toutes les données n'ont pas été envoyées
-		clientActivity[fd] = dataToSend.substr(bytesSent); // Conserver les données non envoyées
-		return 0; // Il reste des données à envoyer
+		clientActivity[fd] = dataToSend.substr(bytesSent);
+		return 0;
 	}
 	else
 	{
-		// Toutes les données ont été envoyées
-		clientActivity.erase(fd); // Supprimer les données envoyées de la map
-		return -1; // Aucune donnée restante à envoyer
+		clientActivity.erase(fd);
+		return -1;
 	}
 }
 
@@ -228,7 +219,7 @@ int handleNewConnection(int server_fd, int kq, std::map<int, time_t>& clientActi
 	if (kevent(kq, &change_event, 1, NULL, 0, NULL) == -1)
 		return (close_and_perror("kevent add new socket", new_socket));
 	else
-		clientActivity[new_socket] = time(nullptr);  // Enregistrer l'heure de la dernière activité
+		clientActivity[new_socket] = time(nullptr);
 	return new_socket;
 }
 
