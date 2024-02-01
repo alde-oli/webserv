@@ -1,5 +1,6 @@
 #include "Route.hpp"
 #include "parsing.hpp"
+#include "ServerConfig.cpp"
 
 //////////////////////////////
 //contructors and destructor//
@@ -29,7 +30,11 @@ Route::~Route()
 //operators overload//
 //////////////////////
 
+<<<<<<< HEAD
 Route	&Route::operator=(const Route &other)
+=======
+Route   &Route::operator=(const Route &other)
+>>>>>>> b8c4cccf7b2e12ac45cf97da95148dff601dd0d2
 {
 	if (this != &other)
 	{
@@ -200,4 +205,30 @@ bool	Route::isRedir() const
 const std::string	&Route::getRedirDir() const
 {
 	return (this->_redirDir);
+}
+
+void	Route::verif() const
+{
+	int count = 0;
+
+	if (_id.empty())
+		printErrorAndExit("Route ID is empty please insert a valid Route ID", 1);
+	else if (_route.empty())
+		printErrorAndExit("Route is empty please insert a valid Route", 1);
+	else if (_root.empty())
+		printErrorAndExit("Root is empty please insert a valid Root", 1);
+	else if (_page.empty())
+		printErrorAndExit("Page is empty please insert a valid Page", 1);
+	else if (_methods.empty())
+		printErrorAndExit("Methods are empty please insert valids Methods", 1);
+	else if (_downloadDir.empty())
+		printErrorAndExit("DownloadDir is empty please insert a valid DownloadDir", 1);
+	else if (_redirDir.empty())
+		printErrorAndExit("RedirDir is empty please insert a valid RedirDir", 1);
+	else if (_listing)
+		count++;
+	else if (_isRedir)
+		count++;
+	if (count == 2 && !_page.empty())
+		printErrorAndExit("Multiple requests type not supported", 1);
 }
