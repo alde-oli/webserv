@@ -9,6 +9,7 @@
 class ServerConfig
 {
 	public:
+	ServerConfig();
 		ServerConfig(std::string id);
 		ServerConfig(const ServerConfig &other);
 		~ServerConfig();
@@ -26,16 +27,16 @@ class ServerConfig
 		const std::string				&getId() const;
 		const std::string				&getServerName() const;
 		const sockaddr_in				&getServerAddr() const;
-		bool							&isDefault() const;
+		bool							isDefault() const;
 		const std::string				&getDefaultPage() const;
-		long long int					&getMaxBodySize() const;
+		long long int					getMaxBodySize() const;
 		const Route						&getRoute(const std::string &route) const;
 		const std::string				&getErrorPage(int errorCode) const;
 		bool							isValidCgi(const std::string &extension) const;
-		std::string						getCgiPath() const;
+		std::string						&getCgiPath() const;
 
 	private:
-		const std::string				_id;
+		std::string						_id;
 		std::string						_serverName;
 		sockaddr_in						_serverAddr;
 		bool							_isDefault;

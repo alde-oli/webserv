@@ -100,9 +100,9 @@ void	ServerConfig::setMain(std::fstream &file, std::string &line)
 		else if (!line.find("default_page = "))
 			this->_defaultPage = setFileStr(line.substr(15));
 		else if (!line.find("max_body_size = "))
-			this->_maxBodySize = set_body_size(line.substr(16));
+			this->_maxBodySize = setBool(line.substr(16));
 		else if (!line.find("is_default = "))
-			this->_isDefault = set_bool(line.substr(13));
+			this->_isDefault = setBool(line.substr(13));
 		else
 		{
 			std::cout << "Error: invalid server line: " << line << std::endl;
@@ -163,7 +163,7 @@ void	ServerConfig::setRoute(std::fstream &file, std::string &line)
 		std::cout << "Error: unexpected line" << line << std::endl;
 		exit (1);
 	}
-	Route route(line.substr(line.find_last_of(':') + 1, line.length() - line.find_last_of(':') - 2)routeId);
+	Route route(line.substr(line.find_last_of(':') + 1, line.length() - line.find_last_of(':') - 2));
 
 	while (std::getline(file, line) && line[0] != '[')
 	{
@@ -173,8 +173,8 @@ void	ServerConfig::setRoute(std::fstream &file, std::string &line)
 			route.setRoute(line.substr(8));
 		else if (!line.find("root = "))
 			route.setRoot(line.substr(7));
-		else if (!line;find("default_page = "))
-			route.setDefault(line.substr(9));
+		else if (!line.find("default_page = "))
+			route.setPage(line.substr(9));
 		else if (!line.find("methods = "))
 			route.setMethods(line.substr(10));
 		else if (!line.find("listing = "))
@@ -182,18 +182,18 @@ void	ServerConfig::setRoute(std::fstream &file, std::string &line)
 		else if (!line.find("download = "))
 			route.setDownload(line.substr(11));
 		else if (!line.find("download_dir = "))
-			route.setDownloadRoute(line.substr(17));
+			route.setDownloadDir(line.substr(17));
 		else if (!line.find("redir  = "))
 			route.setRedir(line.substr(14));
 		else if (!line.find("redir_route = "))
-			route.setRedirRoute(line.substr(14));
+			route.setRedirDir(line.substr(14));
 		else
 		{
 			std::cout << "Error: invalid route line: " << line << std::endl;
 			exit (1);
 		}
 	}
-	this->_routes[route.getRoute] = route;
+	this->_routes[route.getRoute()] = route;
 
 	std::string newRouteFormat = "[" + this->_id + ":ROUTES:";
 	if (line.find(newRouteFormat) == 0 && line[line.length() - 1] == ']')
@@ -234,7 +234,7 @@ const sockaddr_in	&ServerConfig::getServerAddr() const
 	return this->_serverAddr;
 }
 
-bool				&ServerConfig::isDefault() const
+bool				ServerConfig::isDefault() const
 {
 	return this->_isDefault;
 }
@@ -244,7 +244,7 @@ const std::string	&ServerConfig::getDefaultPage() const
 	return this->_defaultPage;
 }
 
-long long int		&ServerConfig::getMaxBodySize() const
+long long int		ServerConfig::getMaxBodySize() const
 {
 	return this->_maxBodySize;
 }
@@ -270,7 +270,7 @@ bool				ServerConfig::isValidCgi(const std::string &extension) const
 	return this->_cgi.isValidCgi(extension);
 }
 
-std::string			ServerConfig::getCgiPath() const
+std::string			&ServerConfig::getCgiPath() const
 {
 	return this->_cgi.getPath();
 }
