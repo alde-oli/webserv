@@ -15,10 +15,10 @@ class CGI
 		void							addExtension(const std::string &extension);
 		void							addPath(const std::string &path);
 
-		const std::vector<std::string>	&getExtensions() const;
-		const std::vector<std::string>	&getPaths() const;
+		const std::string				&getPath() const;
+		bool							isValidExt(const std::string &extension) const;
 
 	private:
 		std::vector<std::string>		_extensions;
-		std::string						_paths;
+		std::string						_path;
 };

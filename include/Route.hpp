@@ -24,12 +24,12 @@ class Route
 		const std::string			&getRoute() const;
 		const std::string			&getRoot() const;
 		const std::string			&getPage() const;
-		bool						&isMethodAllowed(std::string requestMethod) const;
-		bool						&isListing() const;
+		bool						isMethodAllowed(std::string requestMethod) const;
+		bool						isListing() const;
 		std::string					&listRoute() const;
-		bool						&isDownload() const;
+		bool						isDownload() const;
 		const std::string			&getDownloadDir() const;
-		bool						&isRedir() const;
+		bool						isRedir() const;
 		const std::string			&getRedirDir() const;
 
 
