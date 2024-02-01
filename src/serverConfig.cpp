@@ -274,3 +274,33 @@ std::string			&ServerConfig::getCgiPath() const
 {
 	return this->_cgi.getPath();
 }
+
+//////////////////
+// verification //
+//////////////////
+
+void printErrorAndExit(char *msg, int code)
+{
+	std::cerr << "Error: " << msg << std::endl;
+	if (code)
+		exit (code);
+}
+
+void	ServerConfig::checkValidity()
+{
+	if (_id.empty())
+		printErrorAndExit("ID is empty please insert a valid ID", 1);
+	else if (_serverName.empty())
+		printErrorAndExit("ServerName is empty please insert a valid ServerName", 1);
+	else if (_defaultPage.empty())
+		printErrorAndExit("DefaultPage is empty please insert a valid DefaultPage", 1);
+	else if (_maxBodySize <= 0)
+		printErrorAndExit("MaxBodySize is empty please insert a valid MaxBodySize", 1);
+	
+	std::map<std::string, Route>::iterator it;
+
+    for (it = _routes.begin(); it != _routes.end(); ++it)
+	{
+		it->second.verif();
+    }
+}

@@ -31,7 +31,7 @@ class Route
 		const std::string			&getDownloadDir() const;
 		bool						&isRedir() const;
 		const std::string			&getRedirDir() const;
-
+		void						verif() const;
 
 	private:
 		Route();
