@@ -1,0 +1,8 @@
+-cgi specifique a la route
+-gestion des codes retours
+-gestion erreur
+-s'assurer que les cgi fonctionnent
+-cookies
+-formatage reponses
+-envoyer reponses uniquement dans handleclientwrite
+-integrer les variables des serveurs

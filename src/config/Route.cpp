@@ -1,6 +1,11 @@
-#include "Route.hpp"
-#include "parsing.hpp"
-#include "ServerConfig.cpp"
+#include "../include/publiclib.hpp"
+#include "../include/ServerConfig.hpp"
+#include "../include/Error.hpp"
+#include "../include/parsing.hpp"
+#include "../include/Route.hpp"
+#include "../include/Cgi.hpp"
+#include "../include/MultipartFormData.hpp"
+#include "../include/HtmlRequest.hpp"
 
 //////////////////////////////
 //contructors and destructor//
@@ -11,9 +16,10 @@ Route::Route()
 {
 }
 
-Route::Route(std::string id)
-	: _id(id), _route(""), _root(""), _page(""), _methods(), _listing(false), _isDownload(false), _downloadDir(""), _isRedir(false), _redirDir("")
+Route::Route(const std::string &id)
+	: _route(""), _root(""), _page(""), _methods(), _listing(false), _isDownload(false), _downloadDir(""), _isRedir(false), _redirDir("")
 {
+	this->_id = id;
 }
 
 Route::Route(const Route &other)
@@ -30,14 +36,11 @@ Route::~Route()
 //operators overload//
 //////////////////////
 
-<<<<<<< HEAD
-Route	&Route::operator=(const Route &other)
-=======
 Route   &Route::operator=(const Route &other)
->>>>>>> b8c4cccf7b2e12ac45cf97da95148dff601dd0d2
 {
 	if (this != &other)
 	{
+		this->_id = other._id;
 		this->_route = other._route;
 		this->_root = other._root;
 		this->_page = other._page;
@@ -67,7 +70,7 @@ std::ostream	&operator<<(std::ostream &out, const Route &route)
 	out << "IsRedir: " << route._isRedir << std::endl;
 	out << "RedirDir: " << route._redirDir << std::endl;
 	out << "‾‾‾‾‾‾‾‾‾‾‾‾" << std::endl;
-	for (int i = 0; i < route._id.length(); i++)
+	for (unsigned int i = 0; i < route._id.length(); i++)
 		out << "‾";
 	out << std::endl;
 	return (out);
@@ -77,6 +80,11 @@ std::ostream	&operator<<(std::ostream &out, const Route &route)
 ///////////
 //setters//
 ///////////
+
+void	Route::setId(const std::string &id)
+{
+	this->_id = id;
+}
 
 void	Route::setRoute(const std::string &route)
 {
@@ -163,7 +171,7 @@ bool	Route::isListing() const
 	return (this->_listing);
 }
 
-std::string	&Route::listRoute() const
+std::string	Route::listRoute() const
 {
 	std::string		html;
 	DIR*			dir;
@@ -207,6 +215,12 @@ const std::string	&Route::getRedirDir() const
 	return (this->_redirDir);
 }
 
+void	printErrorAndExit(const std::string &error, int exitCode)
+{
+	std::cerr << error << std::endl;
+	exit(exitCode);
+}
+
 void	Route::verif() const
 {
 	int count = 0;
@@ -221,9 +235,9 @@ void	Route::verif() const
 		printErrorAndExit("Page is empty please insert a valid Page", 1);
 	else if (_methods.empty())
 		printErrorAndExit("Methods are empty please insert valids Methods", 1);
-	else if (_downloadDir.empty())
+	else if (_isDownload && _downloadDir.empty())
 		printErrorAndExit("DownloadDir is empty please insert a valid DownloadDir", 1);
-	else if (_redirDir.empty())
+	else if (_isRedir && _redirDir.empty())
 		printErrorAndExit("RedirDir is empty please insert a valid RedirDir", 1);
 	else if (_listing)
 		count++;

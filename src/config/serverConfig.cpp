@@ -1,7 +1,10 @@
-#include "publiclib.hpp"
-#include "ServerConfig.hpp"
-#include "Error.hpp"
-#include "parsing.hpp"
+#include "../include/publiclib.hpp"
+#include "../include/ServerConfig.hpp"
+#include "../include/Error.hpp"
+#include "../include/parsing.hpp"
+
+#define LOCALHOST "127.0.0.1"
+#define EXTERNAL_IP "11.10.14.5"
 
 ///////////////////////////////
 //constructors and destructor//
@@ -38,6 +41,7 @@ ServerConfig	&ServerConfig::operator=(const ServerConfig &other)
 {
 	if (this != &other)
 	{
+		this->_id = other._id;
 		this->_serverName = other._serverName;
 		this->_serverAddr = other._serverAddr;
 		this->_isDefault = other._isDefault;
@@ -82,7 +86,7 @@ void	ServerConfig::setMain(std::fstream &file, std::string &line)
 
 	if (line.empty() || line[0] != '[' || line[line.length() - 1] != ']')
 	{
-		std::cout << "Error: invalid server ID line" << std::endl;
+		std::cerr << "Error: invalid server ID line" << std::endl;
 		exit(1);
 	}
 	this->_id = line.substr(1, line.length() - 2);
@@ -100,12 +104,22 @@ void	ServerConfig::setMain(std::fstream &file, std::string &line)
 		else if (!line.find("default_page = "))
 			this->_defaultPage = setFileStr(line.substr(15));
 		else if (!line.find("max_body_size = "))
-			this->_maxBodySize = setBool(line.substr(16));
-		else if (!line.find("is_default = "))
-			this->_isDefault = setBool(line.substr(13));
+			this->_maxBodySize = setBodySize(line.substr(16));
+		else if (!line.find("default = "))
+			this->_isDefault = setBool(line.substr(10));
+		else if (!line.find("upload_routes = "))
+			setUpload(file, line.substr(16));
+		else if (!line.find("force_upload = "))
+			setForceUpload(file, line.substr(15));
+		else if (!line.find("cookies = "))
+			this->_cookies = setBool(line.substr(10));
+		else if (!line.find("name = "))
+			this->_serverName = line.substr(7);
+		else if (!line.find("default_error_page = "))
+			this->_defaultPage = setFileStr(line.substr(21));
 		else
 		{
-			std::cout << "Error: invalid server line: " << line << std::endl;
+			std::cerr << "Error: invalid server line: " << line << std::endl;
 			exit (1);
 		}
 	}
@@ -123,7 +137,7 @@ void	ServerConfig::setError(std::fstream &file, std::string &line)
 			continue ;
 		if (line.length() < 6 || !std::isdigit(line[0]) || !std::isdigit(line[1]) || !std::isdigit(line[2]) || line[3] != ' ' || line[4] != '=' || line[5] != ' ')
 		{
-			std::cout << "Error: invalid error code: " << line << std::endl;
+			std::cerr << "Error: invalid error code: " << line << std::endl;
 			exit (1);
 		}
 		this->_errors.addPage(std::atoi(line.substr(0, 3).c_str()), line.substr(6));
@@ -143,10 +157,10 @@ void	ServerConfig::setCgi(std::fstream &file, std::string &line)
 		if (!line.find("extension = "))
 			this->_cgi.addExtension(line.substr(12));
 		else if (!line.find("path = "))
-			this->_cgi.addPath(line.substr(7));
+			this->_cgi.addPath(line.substr(8));
 		else
 		{
-			std::cout << "Error: invalid cgi line: " << line << std::endl;
+			std::cerr << "Error: invalid cgi line: " << line << std::endl;
 			exit (1);
 		}
 	}
@@ -160,10 +174,11 @@ void	ServerConfig::setRoute(std::fstream &file, std::string &line)
 
 	if (line[0] != '[')
 	{
-		std::cout << "Error: unexpected line" << line << std::endl;
+		std::cerr << "Error: unexpected line" << line << std::endl;
 		exit (1);
 	}
-	Route route(line.substr(line.find_last_of(':') + 1, line.length() - line.find_last_of(':') - 2));
+	Route route = Route();
+	route.setId(line.substr(line.find_last_of(':') + 1, line.length() - line.find_last_of(':') - 2));
 
 	while (std::getline(file, line) && line[0] != '[')
 	{
@@ -174,7 +189,7 @@ void	ServerConfig::setRoute(std::fstream &file, std::string &line)
 		else if (!line.find("root = "))
 			route.setRoot(line.substr(7));
 		else if (!line.find("default_page = "))
-			route.setPage(line.substr(9));
+			route.setPage(line.substr(15));
 		else if (!line.find("methods = "))
 			route.setMethods(line.substr(10));
 		else if (!line.find("listing = "))
@@ -182,14 +197,14 @@ void	ServerConfig::setRoute(std::fstream &file, std::string &line)
 		else if (!line.find("download = "))
 			route.setDownload(line.substr(11));
 		else if (!line.find("download_dir = "))
-			route.setDownloadDir(line.substr(17));
-		else if (!line.find("redir  = "))
-			route.setRedir(line.substr(14));
+			route.setDownloadDir(line.substr(15));
+		else if (!line.find("redir = "))
+			route.setRedir(line.substr(8));
 		else if (!line.find("redir_route = "))
 			route.setRedirDir(line.substr(14));
 		else
 		{
-			std::cout << "Error: invalid route line: " << line << std::endl;
+			std::cerr << "Error: invalid route line: " << line << std::endl;
 			exit (1);
 		}
 	}
@@ -199,20 +214,49 @@ void	ServerConfig::setRoute(std::fstream &file, std::string &line)
 	if (line.find(newRouteFormat) == 0 && line[line.length() - 1] == ']')
 	{
 		int colonCount = 0;
-		for (char c : line)
+		for (size_t i = 0; i < line.length(); i++)
 		{
-			if (c == ':')
+			if (line[i] == ':')
 				colonCount++;
 		}
 		if (colonCount == 2 && line.find_last_of(':') < line.length() - 2)
 			setRoute(file, line);
 		else
 		{
-			std::cout << "Error: invalid route format" << std::endl;
+			std::cerr << "Error: invalid route format" << std::endl;
 			exit (1);
 		}
 	}
 } 
+
+void	ServerConfig::setUpload(std::fstream &file, const std::string &line)
+{
+	std::stringstream tmpstream(line);
+	std::string tmp;
+
+	(void)file;
+	if (line.empty())
+		cerr_and_exit("Error: method is empty", "", 1);
+	while (std::getline(tmpstream, tmp, ' '))
+	{
+		if (!isRouteValid(tmp))
+			cerr_and_exit("Error: invalid route: ", tmp, 1);
+		this->_upload.push_back(tmp);
+	}
+}
+
+void	ServerConfig::setForceUpload(std::fstream &file, const std::string &line)
+{
+	(void)file;
+	if (line.empty())
+		cerr_and_exit("Error: method is empty", "", 1);
+	if (line == "TRUE")
+		this->_forceUpload = true;
+	else if (line == "FALSE")
+		this->_forceUpload = false;
+	else
+		cerr_and_exit("Error: invalid force upload: ", line, 1);
+}
 
 
 ///////////
@@ -254,10 +298,15 @@ const Route			&ServerConfig::getRoute(const std::string &route) const
 	std::map<std::string, Route>::const_iterator it = this->_routes.find(route);
 	if (it == this->_routes.end())
 	{
-		std::cout << "Error: route not found: " << route << std::endl;
+		std::cerr << "Error: route not found: " << route << std::endl;
 		exit (1);
 	}
 	return it->second;
+}
+
+bool				ServerConfig::hasRoute(const std::string &route) const
+{
+	return this->_routes.find(route) != this->_routes.end();
 }
 
 const std::string	&ServerConfig::getErrorPage(int errorCode) const
@@ -267,24 +316,52 @@ const std::string	&ServerConfig::getErrorPage(int errorCode) const
 
 bool				ServerConfig::isValidCgi(const std::string &extension) const
 {
-	return this->_cgi.isValidCgi(extension);
+	return this->_cgi.isValidExt(extension);
 }
 
-std::string			&ServerConfig::getCgiPath() const
+const std::string	&ServerConfig::getCgiPath() const
 {
 	return this->_cgi.getPath();
+}
+
+bool	ServerConfig::isUpload(const std::string &route) const
+{
+	for (std::vector<std::string>::const_iterator it = this->_upload.begin(); it != this->_upload.end(); it++)
+	{
+		if (*it == route)
+			return true;
+	}
+	return false;
+}
+
+bool	ServerConfig::isForceUpload() const
+{
+	return this->_forceUpload;
 }
 
 //////////////////
 // verification //
 //////////////////
 
-void printErrorAndExit(char *msg, int code)
+void printErrorAndExit(std::string msg, int code)
 {
 	std::cerr << "Error: " << msg << std::endl;
 	if (code)
 		exit (code);
 }
+
+bool isLocalOrExternal(struct sockaddr_in addr) {
+    // Convertit l'adresse IP de network byte order à dotted-decimal string
+    char ipstr[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &(addr.sin_addr), ipstr, INET_ADDRSTRLEN);
+
+    // Vérifie si l'adresse IP est localhost ou l'adresse IP externe connue
+    if (strcmp(ipstr, LOCALHOST) == 0 || strcmp(ipstr, EXTERNAL_IP) == 0) {
+        return true;
+    }
+    return false;
+}
+
 
 void	ServerConfig::checkValidity()
 {
@@ -296,6 +373,8 @@ void	ServerConfig::checkValidity()
 		printErrorAndExit("DefaultPage is empty please insert a valid DefaultPage", 1);
 	else if (_maxBodySize <= 0)
 		printErrorAndExit("MaxBodySize is empty please insert a valid MaxBodySize", 1);
+	if (isLocalOrExternal(_serverAddr) == false)
+		printErrorAndExit("ServerAddr is not valid please insert a valid ServerAddr", 1);
 	
 	std::map<std::string, Route>::iterator it;
 

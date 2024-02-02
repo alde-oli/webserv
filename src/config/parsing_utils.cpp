@@ -1,6 +1,13 @@
-#include "publiclib.hpp"
+#include "../include/publiclib.hpp"
+#include "../include/ServerConfig.hpp"
+#include "../include/Error.hpp"
+#include "../include/parsing.hpp"
+#include "../include/Route.hpp"
+#include "../include/Cgi.hpp"
+#include "../include/MultipartFormData.hpp"
+#include "../include/HtmlRequest.hpp"
 
-static void cerr_and_exit(char *msg, std::string support, int code)
+void	cerr_and_exit(std::string msg, std::string support, int code)
 {
 	std::cerr << msg << support << std::endl;
 	if (code)
@@ -61,7 +68,15 @@ std::vector<std::string> setCgiExtension(const std::string &cgiExtension)
 	{
 		if (cgiExtensionStr[0] != '.')
 			cerr_and_exit("Error: Invalid CGI extension: ", cgiExtensionStr, 1);
-		std::vector<std::string> validExtensions = {".php", ".py", ".rb", ".pl", ".sh", ".cgi", ".rbw", ".tcl"};
+		std::vector<std::string> validExtensions;
+		validExtensions.push_back(".php");
+		validExtensions.push_back(".py");
+		validExtensions.push_back(".rb");
+		validExtensions.push_back(".pl");
+		validExtensions.push_back(".sh");
+		validExtensions.push_back(".cgi");
+		validExtensions.push_back(".rbw");
+		validExtensions.push_back(".tcl");
 		for (std::vector<std::string>::iterator it = validExtensions.begin(); it != validExtensions.end(); ++it)
 		{
 			if (*it == cgiExtensionStr)
@@ -69,7 +84,6 @@ std::vector<std::string> setCgiExtension(const std::string &cgiExtension)
 			if (it == validExtensions.end() - 1)
 				cerr_and_exit("Error: Invalid CGI extension: ", cgiExtensionStr, 1);
 		}
-
 		cgiExtensionVec.push_back(cgiExtensionStr);
 	}
 
@@ -78,36 +92,36 @@ std::vector<std::string> setCgiExtension(const std::string &cgiExtension)
 
 static int check_method(const std::string& single_method)
 {
-    if (single_method == "GET" || single_method == "POST" || single_method == "DELETE")
-        return 1;
+	if (single_method == "GET" || single_method == "POST" || single_method == "DELETE")
+		return 1;
 	else
-        return 0;
+		return 0;
 }
 
 std::vector<std::string> setMethod(const std::string& method)
 {
-    std::vector<std::string> stock;
-    std::stringstream read_method(method);
-    std::string tmp;
+	std::vector<std::string> stock;
+	std::stringstream read_method(method);
+	std::string tmp;
 
 	if (method.empty())
-		cerr_and_exit("Error: method is empty", nullptr, 1);
-    while (std::getline(read_method, tmp, ' '))
+		cerr_and_exit("Error: method is empty", "", 1);
+	while (std::getline(read_method, tmp, ' '))
 	{
-        if (check_method(tmp) == 1)
+		if (check_method(tmp) == 1)
 		{
-            // Vérifier si la méthode est déjà dans le vecteur
-            if (std::find(stock.begin(), stock.end(), tmp) != stock.end())
-				cerr_and_exit("Error: Tu as mis deux fois la meme methode, la shouma sur toi et sur toute ta famille\n#looooooser\n#ouloulou", nullptr, 1);
+			// Vérifier si la méthode est déjà dans le vecteur
+			if (std::find(stock.begin(), stock.end(), tmp) != stock.end())
+				cerr_and_exit("Error: Tu as mis deux fois la meme methode, la shouma sur toi et sur toute ta famille\n#looooooser\n#ouloulou", "", 1);
 			else
 			{
-                stock.push_back(tmp);
-            }
-        }
+				stock.push_back(tmp);
+			}
+		}
 		else
 			cerr_and_exit("Error: Bad method input: ", method, 1);
-    }
-    return stock;
+	}
+	return stock;
 }
 
 bool setBool(std::string boolean)
@@ -123,12 +137,11 @@ bool setBool(std::string boolean)
 		return (value = true);
 	}
 	else
-		cerr_and_exit("Error: bad boolean type: ", boolean, 1);
+		cerr_and_exit("Error: bad boolean type: ", boolean, 1); return (0);
 }
 
 static long long int setSize(std::string size)
 {
-	int i = 0;
 	long long nbr;
 
 	if (size.find('M') != std::string::npos)
@@ -153,10 +166,9 @@ static long long int setSize(std::string size)
 
 long long int setBodySize(std::string size)
 {
-	int		i = 0;
 	if (!size.empty()) 
 	{
-		int i = 0;
+		unsigned int i = 0;
 		while (i < size.length() && isdigit(size[i]))
 		{
 			i++;
@@ -165,14 +177,14 @@ long long int setBodySize(std::string size)
 		{
 			if (i + 1 == size.length())
 			{
-				return (valid_size(size));
+				return (setSize(size));
 			}
 			else
 				cerr_and_exit("Error: bad body size input: ", size, 1);
 		}
 		else if (i == size.length())
 		{
-			return (valid_size(size));
+			return (setSize(size));
 		}
 		else
 			cerr_and_exit("Error: bad body size input: ", size, 1);
@@ -181,21 +193,21 @@ long long int setBodySize(std::string size)
 	return (0);
 }
 
-bool isRouteValid(const std::string& chemin)²
+bool isRouteValid(const std::string& chemin)
 {
-    const std::string validChars = "abcdefghijklmnopqrstuvwxyz"
-                                          "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                          "0123456789"
-                                          "-._~/";
-    if (chemin.empty() || chemin[0] != '/')
-        return false;
-    if (chemin.find("//") != std::string::npos || chemin.find("/../") != std::string::npos || chemin.find("/./") != std::string::npos)
-        return false;
-    for (size_t i = 0; i < chemin.length(); ++i)
+	const std::string validChars = "abcdefghijklmnopqrstuvwxyz"
+									"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+									"0123456789"
+									"-._~/";
+	if (chemin.empty() || chemin[0] != '/')
+		return false;
+	if (chemin.find("//") != std::string::npos || chemin.find("/../") != std::string::npos || chemin.find("/./") != std::string::npos)
+		return false;
+	for (size_t i = 0; i < chemin.length(); ++i)
 	{
-        char c = chemin[i];
-        if (validChars.find(c) == std::string::npos)
-            return false;
-    }
-    return true;
+		char c = chemin[i];
+		if (validChars.find(c) == std::string::npos)
+			return false;
+	}
+	return true;
 }

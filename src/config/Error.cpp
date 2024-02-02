@@ -1,5 +1,5 @@
-#include "Error.hpp"
-#include "parsing.hpp"
+#include "../include/Error.hpp"
+#include "../include/parsing.hpp"
 
 //////////////////////////////
 //contructors and destructor//
@@ -60,7 +60,7 @@ void	Error::addPage(int errorCode, const std::string &errorPage)
 	for (std::map<int, std::string>::const_iterator it = _errorPages.begin(); it != _errorPages.end(); ++it)
 		if (it->first == errorCode)
 		{
-			std::cerr << "Error: Error code already exists" << std::endl;
+			std::cerr << "Error: Error code already exists: " << errorCode << std::endl;
 			exit(EXIT_FAILURE);
 		}
 	_errorPages[errorCode] = errorPage;

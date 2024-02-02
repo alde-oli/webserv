@@ -1,5 +1,11 @@
-#include "../include/htmlrequest.hpp"
+#include "../include/publiclib.hpp"
+#include "../include/ServerConfig.hpp"
+#include "../include/Error.hpp"
+#include "../include/parsing.hpp"
+#include "../include/Route.hpp"
+#include "../include/Cgi.hpp"
 #include "../include/MultipartFormData.hpp"
+#include "../include/HtmlRequest.hpp"
 
 // Constructor
 // Setup all of the http request infos inside the class

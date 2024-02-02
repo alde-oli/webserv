@@ -20,7 +20,6 @@ class MultipartFormData
 	public:
 		MultipartFormData(){};
 		MultipartFormData(std::string contentType, std::string rawContent);
-		MultipartFormData(const MultipartFormData &other){};
 		~MultipartFormData(){};
 
 		std::string					boundary;

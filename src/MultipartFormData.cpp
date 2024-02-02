@@ -1,4 +1,11 @@
+#include "../include/publiclib.hpp"
+#include "../include/ServerConfig.hpp"
+#include "../include/Error.hpp"
+#include "../include/parsing.hpp"
+#include "../include/Route.hpp"
+#include "../include/Cgi.hpp"
 #include "../include/MultipartFormData.hpp"
+#include "../include/HtmlRequest.hpp"
 
 // Constructeur MultipartFormData, but :
 // Retirer et stocké dans un vector de struct data

@@ -1,9 +1,11 @@
 #pragma once
 
 #include	<iostream>
+#include 	<algorithm>
 #include	<string>
 #include	<vector>
 #include	<map>
+#include	<set>
 #include	<fstream>
 #include	<sstream>
 #include	<ostream>

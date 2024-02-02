@@ -1,5 +1,5 @@
-#include "Cgi.hpp"
-#include "parsing.hpp"
+#include "../include/Cgi.hpp"
+#include "../include/parsing.hpp"
 
 //////////////////////////////
 //contructors and destructor//

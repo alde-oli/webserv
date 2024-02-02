@@ -9,7 +9,7 @@
 class ServerConfig
 {
 	public:
-	ServerConfig();
+		ServerConfig();
 		ServerConfig(std::string id);
 		ServerConfig(const ServerConfig &other);
 		~ServerConfig();
@@ -21,6 +21,9 @@ class ServerConfig
 		void							setError(std::fstream &file, std::string &line);
 		void							setCgi(std::fstream &file, std::string &line);
 		void							setRoute(std::fstream &file, std::string &line);
+		void							setUpload(std::fstream &file, const std::string &line);
+		void							setForceUpload(std::fstream &file, const std::string &line);
+
 
 		void							checkValidity();
 
@@ -31,9 +34,12 @@ class ServerConfig
 		const std::string				&getDefaultPage() const;
 		long long int					getMaxBodySize() const;
 		const Route						&getRoute(const std::string &route) const;
+		bool							hasRoute(const std::string &route) const;
 		const std::string				&getErrorPage(int errorCode) const;
 		bool							isValidCgi(const std::string &extension) const;
-		std::string						&getCgiPath() const;
+		const std::string				&getCgiPath() const;
+		bool							isUpload(const std::string &route) const;
+		bool							isForceUpload() const;
 
 	private:
 		std::string						_id;
@@ -42,6 +48,10 @@ class ServerConfig
 		bool							_isDefault;
 		std::string						_defaultPage;
 		long long int					_maxBodySize;
+		bool							_cookies;
+
+		std::vector<std::string>		_upload;
+		bool							_forceUpload;
 
 		std::map<std::string, Route>	_routes;
 		Error							_errors;

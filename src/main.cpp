@@ -1,9 +1,11 @@
-#define PORT 4040
-
-#include "../include/htmlrequest.hpp"
-
-// [ ATTENTION ] Divers appels de kevent() sont fait
-// Cela pourrait poser probleme avec le sujet
+#include "../include/publiclib.hpp"
+#include "../include/ServerConfig.hpp"
+#include "../include/Error.hpp"
+#include "../include/parsing.hpp"
+#include "../include/Route.hpp"
+#include "../include/Cgi.hpp"
+#include "../include/MultipartFormData.hpp"
+#include "../include/HtmlRequest.hpp"
 
 // Prototypes des fonctions
 
@@ -44,7 +46,8 @@ static timespec precise_ft_timeout(int sec, int nsec)
 	timeout.tv_nsec = nsec;
 	return (timeout);
 }
-int main()
+
+int runServer(ServerConfig &server)
 {
 	std::map<int, std::string> dataToSend;
 	int server_fd = setupServerSocket();
@@ -161,48 +164,6 @@ int setupServerSocket()
 	return server_fd;
 }
 
-int registerWriteEvent(int kq, int fd)
-{
-	struct kevent kev;
-	EV_SET(&kev, fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-
-	if (kevent(kq, &kev, 1, NULL, 0, NULL) == -1)
-		return (close_and_perror("registerWriteEvent: kevent", 0));
-	return 0;
-}
-
-int handleClientWrite(int fd, std::map<int, std::string>& clientActivity)
-{
-	if (clientActivity.find(fd) == clientActivity.end() || clientActivity[fd].empty())
-		return -1;
-
-	std::string dataToSend = clientActivity[fd];
-	ssize_t bytesSent = send(fd, dataToSend.c_str(), dataToSend.size(), 0);
-
-	if (bytesSent < 0)
-		return (close_and_perror("send", 0));
-	if (bytesSent < static_cast<ssize_t>(dataToSend.size()))
-	{
-		clientActivity[fd] = dataToSend.substr(bytesSent);
-		return 0;
-	}
-	else
-	{
-		clientActivity.erase(fd);
-		return -1;
-	}
-}
-
-int unregisterWriteEvent(int kq, int fd)
-{
-	struct kevent kev;
-	EV_SET(&kev, fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-
-	if (kevent(kq, &kev, 1, NULL, 0, NULL) == -1)
-		return (close_and_perror("unregisterWriteEvent: kevent", 0));
-	return 0;
-}
-
 int handleNewConnection(int server_fd, int kq, std::map<int, time_t>& clientActivity)
 {
 	struct sockaddr_in address;
@@ -221,64 +182,6 @@ int handleNewConnection(int server_fd, int kq, std::map<int, time_t>& clientActi
 	else
 		clientActivity[new_socket] = time(nullptr);
 	return new_socket;
-}
-
-bool handleClientRequest(int client_fd, std::map<int, time_t>& clientActivity, std::map<int, std::string>& clientDataToSend)
-{
-	char 		buffer[1024] = {0};
-
-	ssize_t valread = read(client_fd, buffer, 1024);
-
-	static int	to_read = 0;
-	static bool	is_post_body  = 0;
-	bool		hasDataToSend = false;
-
-	if (valread > 0)
-	{
-		std::string buf2(buffer, valread);
-		static HttpRequest	request;
-
-		if (!is_post_body)
-		{
-			request = HttpRequest(buf2, client_fd);
-			if (request.method == "POST")
-			{
-				is_post_body = 1;
-				to_read = request.headers["Content-Length"].empty() ? 0 : std::atoi(request.headers["Content-Length"].c_str());
-				to_read -= request.rawBody.size();
-				if (to_read <= 0)
-				{
-					is_post_body = 0;
-					to_read = 0;
-				}
-			}
-		}
-		else
-		{
-			request.rawBody += buf2;
-			to_read -= valread;
-			if (to_read <= 0)
-			{
-				is_post_body = 0;
-				to_read = 0;
-			}
-		}
-		if (!is_post_body)
-			hasDataToSend = request.HandleRequest(clientDataToSend, client_fd);
-		clientActivity[client_fd] = time(nullptr);  // Mettre à jour l'heure de la dernière activité
-
-	}
-	else if (valread == 0)
-	{
-		close(client_fd);
-		clientActivity.erase(client_fd);  // Supprimer le client de la map
-	}
-	else
-	{
-		close_and_perror("read", client_fd);
-		clientActivity.erase(client_fd);  // Supprimer le client de la map
-	}
-	return hasDataToSend;
 }
 
 void checkClientTimeouts(std::map<int, time_t>& clientActivity, int timeout)

@@ -5,12 +5,15 @@
 class Route
 {
 	public:
-		Route(std::string id);
+		Route(const std::string &id);
+		Route();
+		Route(const Route &other);
 		~Route();
 
 		Route						&operator=(const Route &other);
 		friend std::ostream			&operator<<(std::ostream &out, const Route &route);
 
+		void						setId(const std::string &id);
 		void						setRoute(const std::string &route);
 		void						setRoot(const std::string &root);
 		void						setPage(const std::string &page);
@@ -26,7 +29,7 @@ class Route
 		const std::string			&getPage() const;
 		bool						isMethodAllowed(std::string requestMethod) const;
 		bool						isListing() const;
-		std::string					&listRoute() const;
+		std::string					listRoute() const;
 		bool						isDownload() const;
 		const std::string			&getDownloadDir() const;
 		bool						isRedir() const;
@@ -34,10 +37,7 @@ class Route
 		void						verif() const;
 
 	private:
-		Route();
-		Route(const Route &other);
-
-		const std::string			_id;
+		std::string					_id;
 		std::string					_route;
 		std::string					_root;
 		std::string					_page;
@@ -47,4 +47,5 @@ class Route
 		std::string					_downloadDir;
 		bool						_isRedir;
 		std::string					_redirDir;
+		std::string					_path;
 };
