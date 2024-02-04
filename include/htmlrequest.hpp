@@ -5,19 +5,30 @@
 
 class HttpRequest
 {
-	public:
-		std::string							method;
-		std::string							uri;
-		std::string							httpVersion;
-		std::map<std::string, std::string>	headers;
-		std::string							rawBody;
-		MultipartFormData					formattedBody;
-		int									client_fd;
-		
+	public:		
 		HttpRequest(){};
 		HttpRequest(const std::string& requestString, int client_fd);
 		HttpRequest(const HttpRequest &other) {};
 		~HttpRequest();
 
 		bool								HandleRequest(std::map<int, std::string>& clientDataToSend, int client_fd);
+		
+		void	setMethod(std::string method);
+		void	setUri(std::string uri);
+		void	setHttpVersion(std::string httpVersion);
+		void	setClientFd(int clientFd);
+
+		std::string	getMethod(void);
+		std::string	getUri(void);
+		std::string	getHttpVersion(void);
+		int			getClientFd(void);
+
+		private:
+			std::string							method;
+			std::string							uri;
+			std::string							httpVersion;
+			std::map<std::string, std::string>	headers;
+			std::string							rawBody;
+			MultipartFormData					formattedBody;
+			int									client_fd;
 };

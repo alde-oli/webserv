@@ -293,4 +293,48 @@ bool HttpRequest::HandleRequest(std::map<int, std::string>& dToSend, int clientF
     return false;
 }
 
+// [ SETTERS ] //
+
+void	HttpRequest::setMethod		(std::string method)
+{
+    this->method = method;
+}
+
+void	HttpRequest::setUri			(std::string uri)
+{
+    this->uri = uri;
+}
+
+void	HttpRequest::setHttpVersion	(std::string httpVersion)
+{
+    this->httpVersion = httpVersion;
+}
+
+void	HttpRequest::setClientFd		(int clientFd)
+{
+    this->client_fd = clientFd;
+}
+
+// [ GETTER ] //
+
+std::string	HttpRequest::getMethod(void)
+{
+    return (this->method);
+}
+
+std::string	HttpRequest::getUri(void)
+{
+    return (this->uri);
+}
+
+std::string	HttpRequest::getHttpVersion(void)
+{
+    return (this->httpVersion);
+}
+
+int			HttpRequest::getClientFd(void)
+{
+    return (this->client_fd);
+}
+
 HttpRequest::~HttpRequest(){}
