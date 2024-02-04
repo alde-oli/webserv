@@ -23,7 +23,7 @@ class MultipartFormData
 		~MultipartFormData(){};
 
 		std::string getBoundary();
-		std::string getContent();
+		std::vector<contentData> getContent();
 
 		void setBoundary(std::string boundary);
 		void setContent(std::vector<contentData> content);

@@ -115,7 +115,7 @@ std::string MultipartFormData::getBoundary()
     return (boundary);
 }
 
-std::string MultipartFormData::getContent()
+std::vector<contentData> MultipartFormData::getContent()
 {
     return (content);
 }
