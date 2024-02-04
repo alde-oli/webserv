@@ -17,11 +17,15 @@ class HttpRequest
 		void	setUri(std::string uri);
 		void	setHttpVersion(std::string httpVersion);
 		void	setClientFd(int clientFd);
+		void	setHeaders(std::map<std::string, std::string> headers);
+		void 	setFormattedBody(MultipartFormData formattedBody);
 
 		std::string	getMethod(void);
 		std::string	getUri(void);
 		std::string	getHttpVersion(void);
 		int			getClientFd(void);
+		std::map<std::string, std::string>	getheaders(void);
+		MultipartFormData					getformattedBody(void);
 
 		private:
 			std::string							method;

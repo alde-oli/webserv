@@ -315,6 +315,16 @@ void	HttpRequest::setClientFd		(int clientFd)
     this->client_fd = clientFd;
 }
 
+void	HttpRequest::setHeaders(std::map<std::string, std::string> headers)
+{
+    this->headers = headers;
+}
+
+void 	HttpRequest::setFormattedBody(MultipartFormData formattedBody)
+{
+    this->formattedBody = formattedBody;
+}
+
 // [ GETTER ] //
 
 std::string	HttpRequest::getMethod(void)
@@ -335,6 +345,16 @@ std::string	HttpRequest::getHttpVersion(void)
 int			HttpRequest::getClientFd(void)
 {
     return (this->client_fd);
+}
+
+std::map<std::string, std::string>	HttpRequest::getheaders(void)
+{
+    return (this->headers);
+}
+
+MultipartFormData   HttpRequest::getformattedBody(void)
+{
+    return (this->formattedBody);
 }
 
 HttpRequest::~HttpRequest(){}
