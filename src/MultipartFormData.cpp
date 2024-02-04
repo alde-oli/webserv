@@ -95,3 +95,27 @@ MultipartFormData::MultipartFormData(std::string contentType, std::string rawCon
         }
     }
 }
+
+// [ SETTERS ] //
+
+void MultipartFormData::setBoundary(std::string boundary)
+{
+    this->boundary = boundary;
+}
+
+void MultipartFormData::setContent(std::vector<contentData> content)
+{
+    this->content = content;
+}
+
+// [ GETTERS ] //
+
+std::string MultipartFormData::getBoundary()
+{
+    return (boundary);
+}
+
+std::string MultipartFormData::getContent()
+{
+    return (content);
+}
