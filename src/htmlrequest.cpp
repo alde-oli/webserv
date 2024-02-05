@@ -35,6 +35,8 @@ HttpRequest::HttpRequest(const std::string& requestString, int client_fd)
 		std::getline(requestStream, this->rawBody);
 }
 
+HttpRequest::~HttpRequest(){}
+
 //temporary
 static std::string BuildtHttpResponse(std::string cgiOutput)
 {
@@ -87,7 +89,7 @@ static void closeAndDup(int fd1, int fd2, int dupFrom, int dupTo)
     close(fd2);
 }
 
-bool handleCgi(HttpRequest& request, const std::string& args)
+void handleCgi(HttpRequest& request, const std::string& args, HttpResponse &response, ServerConfig &server)
 {
     int pid;
     int pipefd[2];
@@ -95,10 +97,8 @@ bool handleCgi(HttpRequest& request, const std::string& args)
     if (pipe(pipefd))
         pipe_error("pipe", false);
 
-    std::string cgiPath = "/Users/alde-oli/Desktop/ws_old/www/webpages" + request.uri.substr(0, request.uri.find("?"));
-    std::vector<std::string> envp;
-    std::istringstream argStream(args);
-    std::string arg;
+    //separate cgi path , cgi filename and args
+    // add root path to filename
     
     while (std::getline(argStream, arg, '&'))
         envp.push_back(arg);
@@ -135,18 +135,11 @@ bool handleCgi(HttpRequest& request, const std::string& args)
 		close(pipefd[0]);
 		waitpid(pid, NULL, 0);
 		if (!cgiOutput.empty())
-		{
-			std::string httpResponse = BuildtHttpResponse(cgiOutput);
-			send(request.client_fd, httpResponse.c_str(), httpResponse.size(), 0);
-		}
-		else
-		{
-			std::string errorResponse = "HTTP/1.1 500 Internal Server Error\r\n\r\n";
-			send(request.client_fd, errorResponse.c_str(), errorResponse.size(), 0);
-		}
+            response.build(200, cgiOutput, servConfig);
+        else
+            response.build(500 , "", servConfig);
 	}
     deleteTab(env);
-    return true;
 }
 
 std::string extensionType(HttpRequest &request)
@@ -178,7 +171,7 @@ std::string extensionType(HttpRequest &request)
     return (contentType);
 }
 
-bool handleGet(HttpRequest& request, std::map<int, std::string>& dToSend, int clientFd)
+void handleGet(HttpRequest& request, std::map<int, HttpResponse &response, int clientFd, ServerConfig &server)
 {
     if (request.uri.length() > 4 && !request.uri.find("/cgi"))
         return handleCgi(request, getCgiArgs(request.uri));
@@ -214,7 +207,7 @@ bool handleGet(HttpRequest& request, std::map<int, std::string>& dToSend, int cl
 }
 
 
-bool handlePost(HttpRequest& request, std::map<int, std::string>& dToSend, int clientFd)
+void handlePost(HttpRequest& request, std::map<int, HttpResponse &response, int clientFd, ServerConfig &server)
 {
     std::string response;
 
@@ -260,7 +253,7 @@ bool handlePost(HttpRequest& request, std::map<int, std::string>& dToSend, int c
 }
 
 
-bool handleDelete(HttpRequest& request, std::map<int, std::string>& dToSend, int clientFd)
+void handleDelete(HttpRequest& request, std::map<int, HttpResponse &response, int clientFd, ServerConfig &server)
 {
 	std::string response;
 
@@ -278,7 +271,7 @@ bool handleDelete(HttpRequest& request, std::map<int, std::string>& dToSend, int
 	return true;
 };
 
-bool HttpRequest::HandleRequest(std::map<int, std::string>& dToSend, int clientFd)
+void HttpRequest::HandleRequest(std::map<int, HttpResponse &response, int clientFd, ServerConfig &server)
 {
 	std::string requests[3] = {"GET", "POST", "DELETE"};
 	bool (*handlers[3])(HttpRequest&, std::map<int, std::string>& dToSend, int clientFd) = {handleGet, handlePost, handleDelete};
@@ -355,5 +348,3 @@ MultipartFormData   HttpRequest::getformattedBody(void)
 {
     return (this->formattedBody);
 }
-
-HttpRequest::~HttpRequest(){}

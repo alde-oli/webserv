@@ -11,11 +11,11 @@ class HttpRequest
 		HttpRequest(const HttpRequest &other) {};
 		~HttpRequest();
 
-		bool									HandleRequest(std::map<int, std::string>& clientDataToSend, int client_fd);
-		friend bool 							handleCgi(HttpRequest& request, const std::string& args);
-		friend bool								handleGet(HttpRequest& request, std::map<int, std::string>& dToSend, int clientFd);
-		friend bool								handlePost(HttpRequest& request, std::map<int, std::string>& dToSend, int clientFd);
-		friend bool								handleDelete(HttpRequest& request, std::map<int, std::string>& dToSend, int clientFd);
+		void									HandleRequest(std::map<int, HttpResponse &response, int client_fd, ServerConfig &server);
+		friend void 							handleCgi(HttpRequest& request, const std::string& args, HttpResponse &response, ServerConfig &server);
+		friend void								handleGet(HttpRequest& request, std::map<int, HttpResponse &response, int clientFd, ServerConfig &server);
+		friend void								handlePost(HttpRequest& request, std::map<int, HttpResponse &response, int clientFd, ServerConfig &server);
+		friend void								handleDelete(HttpRequest& request, std::map<int, HttpResponse &response, int clientFd, ServerConfig &server);
 		friend std::string						extensionType(HttpRequest &request);
 
 		void									setMethod(std::string method);
