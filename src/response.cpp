@@ -115,20 +115,65 @@ std::string Response::caring200(int code_erreur)
 }
 
 
-void Response::build(int code_erreur, std::string body, ServerConfig servConfig)
+static int	CountCharsInFile(std::string filename)
+{
+	std::ifstream file(filename);
+
+	if (!file.is_open())
+	{
+		std::cerr << "Error builing the response: File failed to open" << std::endl;
+		return (-1);
+	}
+	int	counter = 0;
+	char ch;
+
+	// has get() recup some chars it continue to inc
+	while (file.get(ch))
+		counter++;
+	file.close();
+	return (counter);
+}
+
+std::string getBody(std::string filename)
+{
+	std::ifstream file(filename);
+
+	if (!file.is_open())
+	{
+		std::cerr << "Error builing the response: File failed to open" << std::endl;
+		return (NULL);
+	}
+
+	std::ostringstream content;
+    std::string line;
+
+	while (std::getline(file, line))
+		content << line << '\n';
+
+	file.close();
+	return (content.str());
+}
+
+void Response::build(int code_erreur, std::string body, ServerConfig servConfig, std::string ContentType)
 {
 	std::stringstream ss;
 	ss << code_erreur;
 	std::string code_str = ss.str();
 
 	if (code_erreur < 300)
-		this->response = "HTTP/1.1 " + code_str + caring200(code_erreur);
+		this->response = "HTTP/1.1 " + code_str + caring200(code_erreur) + '\n';
 	else if (code_erreur < 400)
-		this->response = "HTTP/1.1 " + code_str + caring300(code_erreur);
+		this->response = "HTTP/1.1 " + code_str + caring300(code_erreur) + '\n';
 	else if (code_erreur < 500)
-		this->response = "HTTP/1.1 " + code_str + caring400(code_erreur);
+		this->response = "HTTP/1.1 " + code_str + caring400(code_erreur) + '\n';
 	else
-		this->response = "HTTP/1.1 " + code_str + caring500(code_erreur);
+		this->response = "HTTP/1.1 " + code_str + caring500(code_erreur) + '\n';
+	this ->response = this->response + "Server : " + servConfig.getServerName() + '\n';
+	this->response = this->response + "Content-Type: " + ContentType +'\n';
+	ss << CountCharsInFile(body);
+	std::string chars_nbr = ss.str();
+	this->response = this->response + "Content-Length: " + chars_nbr + '\n';
+	this->response = this->response + getBody(body) + '\n';
 	servConfig.getErrorPage(code_erreur);
 }
 
