@@ -6,11 +6,12 @@
 #include "../include/Cgi.hpp"
 #include "../include/MultipartFormData.hpp"
 #include "../include/HtmlRequest.hpp"
+#include "../include/response.hpp"
 
 // Constructor
 // Setup all of the http request infos inside the class
 HttpRequest::HttpRequest(const std::string& requestString, int client_fd)
-    : client_fd(client_fd)
+	: client_fd(client_fd)
 {
 	std::istringstream requestStream(requestString);
 
@@ -24,7 +25,7 @@ HttpRequest::HttpRequest(const std::string& requestString, int client_fd)
 	{
 		size_t separatorPos = headerLine.find(": ");
 		if (separatorPos != std::string::npos)
-        {
+		{
 			std::string key = headerLine.substr(0, separatorPos);
 			std::string value = headerLine.substr(separatorPos + 2);
 			this->headers[key] = value;
@@ -37,91 +38,83 @@ HttpRequest::HttpRequest(const std::string& requestString, int client_fd)
 
 HttpRequest::~HttpRequest(){}
 
-//temporary
-static std::string BuildtHttpResponse(std::string cgiOutput)
-{
-    std::string httpResponse = "HTTP/1.1 200 OK\r\n";
-    httpResponse += "Content-Type: text/html\r\n";
-	httpResponse += "Content-Length: " + std::to_string(cgiOutput.size()) + "\r\n";
-	httpResponse += "\r\n";
-	httpResponse += cgiOutput;
-
-    return (httpResponse);
-}
+// [ METHODS ] //
 
 static void deleteTab(char **env)
 {
-    for (size_t i = 0; env[i] != nullptr; ++i)
-    {
-        delete[] env[i];
-    }
-    delete[] env;
+	for (size_t i = 0; env[i] != nullptr; ++i)
+	{
+		delete[] env[i];
+	}
+	delete[] env;
 }
 
 std::string getCgiArgs(const std::string& uri)
 {
-    size_t pos = uri.find("?");
+	size_t pos = uri.find("?");
 
-    if (pos != std::string::npos && pos + 1 < uri.size())
-    {
-        return uri.substr(pos + 1);
-    }
-    return "";
+	if (pos != std::string::npos && pos + 1 < uri.size())
+	{
+		return uri.substr(pos + 1);
+	}
+	return "";
 }
 
 static bool pipe_error(char *msg, int boolean)
 {
-    perror(msg);
-    return (boolean);
+	perror(msg);
+	return (boolean);
 }
 
 static void perrorAndExit(char *msg, int code)
 {
-    perror(msg);
+	perror(msg);
 	if (code)
 		exit (code);
 }
 
 static void closeAndDup(int fd1, int fd2, int dupFrom, int dupTo)
 {
-    close (fd1);
-    dup2(dupFrom, dupTo);
-    close(fd2);
+	close (fd1);
+	dup2(dupFrom, dupTo);
+	close(fd2);
 }
 
-void handleCgi(HttpRequest& request, const std::string& args, HttpResponse &response, ServerConfig &server)
+void handleCgi(HttpRequest& request, Response &response, int clientFd, ServerConfig &server, std::string args)
 {
-    int pid;
-    int pipefd[2];
+	int pid;
+	int pipefd[2];
 
-    if (pipe(pipefd))
-        pipe_error("pipe", false);
+	if (pipe(pipefd))
+		pipe_error("pipe", false);
 
-    //separate cgi path , cgi filename and args
-    // add root path to filename
-    
-    while (std::getline(argStream, arg, '&'))
-        envp.push_back(arg);
+	std::string	envp;
+	//separate cgi path , cgi filename and args
+	// add root path to filename
+	std::stringstream argStream(args);
+	std::string arg;
+	while (std::getline(argStream, arg, '&'))
+		envp.push_back(arg);
 
-    char **env = new char*[envp.size() + 1];
+	char **env = new char*[envp.size() + 1];
 
-    for (size_t i = 0; i < envp.size(); ++i)
-    {
-        env[i] = new char[envp[i].size() + 1];
-        std::strcpy(env[i], envp[i].c_str());
-    }
-    env[envp.size()] = NULL;
-    char *argv[] = {NULL};
+	for (size_t i = 0; i < envp.size(); ++i)
+	{
+		env[i] = new char[envp[i].size() + 1];
+		std::strcpy(env[i], envp[i].c_str());
+	}
+	env[envp.size()] = NULL;
+	char *argv[] = {NULL};
 
-    pid = fork();
-    if (pid == 0)
-    {
-        closeAndDup(pipefd[0], pipefd[1], pipefd[1], STDOUT_FILENO);
-        execve(cgiPath.c_str(), argv, env);
-        perrorAndExit("execve", EXIT_FAILURE);
-    } 
-    else
-    {
+	pid = fork();
+	if (pid == 0)
+	{
+		closeAndDup(pipefd[0], pipefd[1], pipefd[1], STDOUT_FILENO);
+		execve(cgiPath.c_str(), argv, env);
+		perrorAndExit("execve", EXIT_FAILURE);
+	} 
+	else
+	{
 		std::string cgiOutput;
 
 		close(pipefd[1]);
@@ -135,24 +128,24 @@ void handleCgi(HttpRequest& request, const std::string& args, HttpResponse &resp
 		close(pipefd[0]);
 		waitpid(pid, NULL, 0);
 		if (!cgiOutput.empty())
-            response.build(200, cgiOutput, servConfig);
-        else
-            response.build(500 , "", servConfig);
+			response.build(200, cgiOutput, server, "text/html");
+		else
+			response.build(500 , "", server, "text/html");
 	}
-    deleteTab(env);
+	deleteTab(env);
 }
 
 std::string extensionType(HttpRequest &request)
 {
-    std::string contentType;
+	std::string contentType;
 
-    contentType = request.uri.find(".html") != std::string::npos ? "text/html" :
-				    request.uri.find(".css") != std::string::npos ? "text/css" :
-				    request.uri.find(".js") != std::string::npos ? "application/javascript" :
-				    request.uri.find(".png") != std::string::npos ? "image/png" :
-				    request.uri.find(".jpg") != std::string::npos ? "image/jpeg" :
-				    request.uri.find(".jpeg") != std::string::npos ? "image/jpeg" :
-				    request.uri.find(".gif") != std::string::npos ? "image/gif" :
+	contentType = request.uri.find(".html") != std::string::npos ? "text/html" :
+					request.uri.find(".css") != std::string::npos ? "text/css" :
+					request.uri.find(".js") != std::string::npos ? "application/javascript" :
+					request.uri.find(".png") != std::string::npos ? "image/png" :
+					request.uri.find(".jpg") != std::string::npos ? "image/jpeg" :
+					request.uri.find(".jpeg") != std::string::npos ? "image/jpeg" :
+					request.uri.find(".gif") != std::string::npos ? "image/gif" :
 					request.uri.find(".svg") != std::string::npos ? "image/svg+xml" :
 					request.uri.find(".ico") != std::string::npos ? "image/x-icon" :
 					request.uri.find(".mp3") != std::string::npos ? "audio/mpeg" :
@@ -168,120 +161,139 @@ std::string extensionType(HttpRequest &request)
 					request.uri.find(".csv") != std::string::npos ? "text/csv" :
 					request.uri.find(".txt") != std::string::npos ? "text/plain" :
 					"application/octet-stream";
-    return (contentType);
+	return (contentType);
 }
 
-void handleGet(HttpRequest& request, std::map<int, HttpResponse &response, int clientFd, ServerConfig &server)
+void handleGet(HttpRequest& request, Response &response, int clientFd, ServerConfig &server)
 {
-    if (request.uri.length() > 4 && !request.uri.find("/cgi"))
-        return handleCgi(request, getCgiArgs(request.uri));
+	//change to find the route then search if the last elem from the request ends with a valid cgi extension
+	std::string path = request.uri.substr(0, request.uri.find_last_of('/') + 1);
+	if (server.hasRoute(path) == false)
+	{
+		response.build(404, "", server, "text/html");
+		return ;
+	}
+	Route route = server.getRoute(path);
+	if (route.isMethodAllowed("GET") == false)
+	{
+		response.build(405, "", server, "text/html");
+		return ;
+	}
 
-    std::string resourcePath;
-    std::string contentType;
+	std::string resourcePath;
+	std::string contentType;
 
-    resourcePath = "www/webpages" + request.uri;
-    if (request.uri.find("/download") == 0)
-        contentType = extensionType(request);
-    else
-        contentType = "text/html";
-
-    std::ifstream file(resourcePath, std::ios::binary);
-
-    if (!file.is_open())
-    {
-        std::string response = "HTTP/1.1 404 Not Found\r\n\r\n";
-        send(clientFd, response.c_str(), response.length(), 0);
-        return true;
-    }
-
-    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-
-    file.close();
-    
-    std::string contentDisposition = request.uri.find("/download") == 0 ? "attachment; filename=" : "inline; filename=" + resourcePath.substr(resourcePath.find_last_of("/") + 1);
-    std::string response = "HTTP/1.1 200 OK\r\nContent-Type: " + contentDisposition + contentType + "\r\nContent-Length: " + std::to_string(content.length()) + "\r\n\r\n" + content;
-    
-    dToSend[clientFd] = response;
-
-    return true;
-}
+	//change to get the root from the route and multiple other things
+	//add handling for default page, listing, redirection, upload and force
 
 
-void handlePost(HttpRequest& request, std::map<int, HttpResponse &response, int clientFd, ServerConfig &server)
-{
-    std::string response;
-
-    if (request.uri.length() > 4 && !request.uri.find("/cgi"))
-        return handleCgi(request, request.rawBody);
-
-    if (request.headers["Content-Type"].find("multipart/form-data") != std::string::npos)
-    {
-        request.formattedBody = MultipartFormData(request.headers["Content-Type"], request.rawBody);
-    
-        for (size_t i = 0; i < request.formattedBody.content.size(); i++)
-        {
-            if (request.formattedBody.content[i].filename.empty())
-                continue;
-
-            std::string filePath = "www/webpages/kittenland/" + request.formattedBody.content[i].filename;
-            std::ofstream file(filePath, std::ios::out | std::ios::trunc | std::ios::binary);
-
-            if (file.is_open())
-            {
-                file.write(request.formattedBody.content[i].content.data(), request.formattedBody.content[i].content.size());
-                file.close();
-
-                if (!file)
-                {
-                    response = "HTTP/1.1 500 Internal Server Error\r\n\r\n";
-                    break;
-                }
-                response = "HTTP/1.1 200 OK\r\n\r\n";
-            }
-            else
-            {
-                response = "HTTP/1.1 500 Internal Server Error\r\n\r\n";
-                break;
-            }
-        }
-    }
-    else
-        response = "HTTP/1.1 400 Bad Request\r\n\r\n";
-
-    dToSend[clientFd] = response;
-    return true;
+	resourcePath = "www/webpages" + request.uri;
+	if (request.uri.find("/download") == 0)
+		contentType = extensionType(request);
+	else
+		contentType = "text/html";
+	std::ifstream file(resourcePath, std::ios::binary);
+	if (!file.is_open())
+	{
+		response.build(404, "", server, contentType);
+		return ;
+	}
+	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	file.close();
+	response.build(200, content, server, contentType);
 }
 
 
-void handleDelete(HttpRequest& request, std::map<int, HttpResponse &response, int clientFd, ServerConfig &server)
+
+
+void handlePost(HttpRequest& request, Response &response, int clientFd, ServerConfig &server)
 {
-	std::string response;
+	std::vector<contentData>    content = request.formattedBody.getContent();
 
-	if (request.uri.length() <= 4 || request.uri.find("/kittenland/"))
-		return false;
-    
-    std::string resourcePath = "www/webpages/" + request.uri;
+	//get che route, if doesn't exist return 404, if it does, check if POST is allowed, if not return 405
 
-	if (remove(resourcePath.c_str()) != 0)
-    	response = "HTTP/1.1 404 Not Found\r\n\r\n";
-    else
-        response = "HTTP/1.1 200 OK\r\n\r\n";
+	//change to find the route then search if the last elem from the request ends with a valid cgi extension
+	if (request.uri.length() > 4 && !request.uri.find("/cgi"))
+		return handleCgi(request, response, clientFd, server);
+	//
 
-	dToSend[clientFd] = response;
-	return true;
+	//check if download is allowed and wich folder it redirects to
+
+	if (request.headers["Content-Type"].find("multipart/form-data") != std::string::npos)
+	{
+		request.formattedBody = MultipartFormData(request.headers["Content-Type"], request.rawBody);
+	
+		for (size_t i = 0; i < content.size(); i++)
+		{
+			if (content[i].filename.empty())
+				continue;
+
+			//change to get route root from the server
+			std::string filePath = "www/webpages/kittenland/" + content[i].filename;
+			//
+			std::ofstream file(filePath, std::ios::out | std::ios::trunc | std::ios::binary);
+
+			if (file.is_open())
+			{
+				file.write(content[i].content.data(), content[i].content.size());
+				file.close();
+
+				if (!file)
+				{
+					response.build(500, "", server);
+					break;
+				}
+				response.build(200, "", server);
+			}
+			else
+			{
+				response.build(500, "", server);
+				break;
+			}
+		}
+	}
+	else
+		response.build(400, "", server);
+}
+
+
+void handleDelete(HttpRequest& request, Response &response, int clientFd, ServerConfig &server)
+{
+	std::string path = request.uri.substr(0, request.uri.find_last_of('/') + 1);
+
+	if (server.hasRoute(path) == false)
+	{
+		response.build(404, "", server, "text/html");
+		return ;
+	}
+
+	Route route = server.getRoute(path);
+	if (route.isMethodAllowed("DELETE") == false)
+	{
+		response.build(405, "", server, "text/html");
+		return ;
+	}
+
+	std::string resourcePath = route.getRoot() + request.uri.substr(request.uri.find_last_of('/') + 1);
+
+	if (access(resourcePath.c_str(), F_OK) == -1)
+		response.build(404, "", server, "text/html");
+	else if (remove(resourcePath.c_str()) != 0)
+		response.build(500, "", server, "text/html");
+	else
+		response.build(200, "", server, "text/html");
 };
 
-void HttpRequest::HandleRequest(std::map<int, HttpResponse &response, int clientFd, ServerConfig &server)
+void HttpRequest::HandleRequest(Response &response, int clientFd, ServerConfig &server)
 {
 	std::string requests[3] = {"GET", "POST", "DELETE"};
-	bool (*handlers[3])(HttpRequest&, std::map<int, std::string>& dToSend, int clientFd) = {handleGet, handlePost, handleDelete};
+	void (*handlers[3])(HttpRequest&, Response&, int, ServerConfig&) = {handleGet, handlePost, handleDelete};
 	
-    for (int i = 0; i < 3; i++)
+	for (int i = 0; i < 3; i++)
 	{
-        	if (this->method == requests[i])
-			    return handlers[i](*this, dToSend, clientFd);
-    }
-    return false;
+			if (this->method == requests[i])
+				handlers[i](*this, response, clientFd, server);
+	}
 }
 
 
@@ -289,62 +301,63 @@ void HttpRequest::HandleRequest(std::map<int, HttpResponse &response, int client
 
 void	HttpRequest::setMethod		(std::string method)
 {
-    this->method = method;
+	this->method = method;
 }
 
 void	HttpRequest::setUri			(std::string uri)
 {
-    this->uri = uri;
+	this->uri = uri;
 }
 
 void	HttpRequest::setHttpVersion	(std::string httpVersion)
 {
-    this->httpVersion = httpVersion;
+	this->httpVersion = httpVersion;
 }
 
 void	HttpRequest::setClientFd		(int clientFd)
 {
-    this->client_fd = clientFd;
+	this->client_fd = clientFd;
 }
 
 void	HttpRequest::setHeaders(std::map<std::string, std::string> headers)
 {
-    this->headers = headers;
+	this->headers = headers;
 }
 
 void 	HttpRequest::setFormattedBody(MultipartFormData formattedBody)
 {
-    this->formattedBody = formattedBody;
+	this->formattedBody = formattedBody;
 }
+
 
 // [ GETTER ] //
 
 std::string	HttpRequest::getMethod(void)
 {
-    return (this->method);
+	return (this->method);
 }
 
 std::string	HttpRequest::getUri(void)
 {
-    return (this->uri);
+	return (this->uri);
 }
 
 std::string	HttpRequest::getHttpVersion(void)
 {
-    return (this->httpVersion);
+	return (this->httpVersion);
 }
 
 int			HttpRequest::getClientFd(void)
 {
-    return (this->client_fd);
+	return (this->client_fd);
 }
 
 std::map<std::string, std::string>	HttpRequest::getheaders(void)
 {
-    return (this->headers);
+	return (this->headers);
 }
 
 MultipartFormData   HttpRequest::getformattedBody(void)
 {
-    return (this->formattedBody);
+	return (this->formattedBody);
 }

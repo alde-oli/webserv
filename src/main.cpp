@@ -51,39 +51,29 @@ int runServer(ServerConfig &server)
 {
 	std::map<int, std::string> dataToSend;
 	int server_fd = setupServerSocket();
-
 	if (server_fd < 0)
 		return -1;
 
 	signal(SIGPIPE, SIG_IGN);
-
 	struct timeval sendTimeout = ft_timeout(300, 0);
-
 	// Définir le timeout d'envoi sur le socket
 	int val = 1;
 	setsockopt(server_fd, SOL_SOCKET, SO_NOSIGPIPE, &val, sizeof(val));
-
 	if (setsockopt(server_fd, SOL_SOCKET, SO_SNDTIMEO, (char *)&sendTimeout, sizeof(sendTimeout)) < 0)
 		return (close_and_perror("setsockopt", 0));
-
 	// Créer une kqueue
 	int kq = kqueue();
-
 	if (kq == -1)
 		return (close_and_perror("kqueue", 0));
-
 	struct kevent kev;
 	EV_SET(&kev, server_fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 	// Si error
 	if (kevent(kq, &kev, 1, NULL, 0, NULL) == -1)
 		return (close_and_perror("kevent add server_fd", server_fd));
-
 	struct timespec timeout = precise_ft_timeout(30, 0);
-
 	std::map<int, time_t> clientActivity;
 	// Timeout d'inactivité en secondes
 	const int idle_timeout = 10;
-
 	while (true)
 	{
 		struct kevent events[32];
@@ -115,7 +105,6 @@ int runServer(ServerConfig &server)
 			else if (events[i].filter == EVFILT_WRITE)
 			{
 				// Gérer l'envoi de données au client
-				// Message spécifique qui peut être mit [ ici ]
 				if (handleClientWrite(fd, dataToSend) == -1)
 					unregisterWriteEvent(kq, fd); // Préparer la désinscription, appliquée dans le prochain passage
 			}
@@ -136,25 +125,20 @@ int setupServerSocket()
 
 	// Ignorer SIGPIPE
 	signal(SIGPIPE, SIG_IGN);
-
 	// Créer le socket
 	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
 		return (close_and_perror("socket failed", 0));
-
 	// Rendre le socket non bloquant
 	int flags = fcntl(server_fd, F_GETFL, 0);
 	if (flags == -1)
 		return (close_and_perror("fcntl F_GETFL", server_fd));
-
 	flags |= O_NONBLOCK;
 	if (fcntl(server_fd, F_SETFL, flags) == -1)
 		return (close_and_perror("fcntl F_SETFL O_NONBLOCK", server_fd));
-
 	// Définir l'adresse du serveur
 	address.sin_family = AF_INET;
 	address.sin_addr.s_addr = inet_addr("127.0.0.1");
 	address.sin_port = htons(PORT);
-
 	// Lier le socket
 	if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
 		return (close_and_perror("bind failed", server_fd));

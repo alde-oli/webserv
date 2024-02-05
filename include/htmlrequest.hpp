@@ -2,6 +2,7 @@
 
 #include "MultipartFormData.hpp"
 #include "publiclib.hpp"
+#include "response.hpp"
 
 class HttpRequest
 {
@@ -11,11 +12,11 @@ class HttpRequest
 		HttpRequest(const HttpRequest &other) {};
 		~HttpRequest();
 
-		void									HandleRequest(std::map<int, HttpResponse &response, int client_fd, ServerConfig &server);
-		friend void 							handleCgi(HttpRequest& request, const std::string& args, HttpResponse &response, ServerConfig &server);
-		friend void								handleGet(HttpRequest& request, std::map<int, HttpResponse &response, int clientFd, ServerConfig &server);
-		friend void								handlePost(HttpRequest& request, std::map<int, HttpResponse &response, int clientFd, ServerConfig &server);
-		friend void								handleDelete(HttpRequest& request, std::map<int, HttpResponse &response, int clientFd, ServerConfig &server);
+		void									HandleRequest(Response &response, int clientFd, ServerConfig &server);
+		friend void 							handleCgi(HttpRequest& request, Response &response, int clientFd, ServerConfig &server);
+		friend void								handleGet(HttpRequest& request, Response &response, int clientFd, ServerConfig &server);
+		friend void								handlePost(HttpRequest& request, Response &response, int clientFd, ServerConfig &server);
+		friend void								handleDelete(HttpRequest& request, Response &response, int clientFd, ServerConfig &server);
 		friend std::string						extensionType(HttpRequest &request);
 
 		void									setMethod(std::string method);
