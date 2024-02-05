@@ -9,7 +9,8 @@
 
 // Constructor
 // Setup all of the http request infos inside the class
-HttpRequest::HttpRequest(const std::string& requestString, int client_fd) : client_fd(client_fd)
+HttpRequest::HttpRequest(const std::string& requestString, int client_fd)
+    : client_fd(client_fd)
 {
 	std::istringstream requestStream(requestString);
 
@@ -17,7 +18,6 @@ HttpRequest::HttpRequest(const std::string& requestString, int client_fd) : clie
    	std::getline(requestStream, this->method, ' ');
 	std::getline(requestStream, this->uri, ' ');
 	std::getline(requestStream, this->httpVersion);
-
 	// Lire les en-têtes
 	std::string headerLine;
 	while (std::getline(requestStream, headerLine) && headerLine != "\r")
@@ -30,14 +30,12 @@ HttpRequest::HttpRequest(const std::string& requestString, int client_fd) : clie
 			this->headers[key] = value;
 		}
 	}
-
 	// Lire le corps (si présent)
 	if (this->headers.find("Content-Length") != this->headers.end())
-	{
 		std::getline(requestStream, this->rawBody);
-	}
 }
 
+//temporary
 static std::string BuildtHttpResponse(std::string cgiOutput)
 {
     std::string httpResponse = "HTTP/1.1 200 OK\r\n";
@@ -82,11 +80,11 @@ static void perrorAndExit(char *msg, int code)
 		exit (code);
 }
 
-static void closeAndDup(int closeOne, int closeTwo, int dupFrom, int dupTo)
+static void closeAndDup(int fd1, int fd2, int dupFrom, int dupTo)
 {
-    close (closeOne);
+    close (fd1);
     dup2(dupFrom, dupTo);
-    close(closeTwo);
+    close(fd2);
 }
 
 bool handleCgi(HttpRequest& request, const std::string& args)
@@ -151,7 +149,7 @@ bool handleCgi(HttpRequest& request, const std::string& args)
     return true;
 }
 
-static std::string extensionType(HttpRequest &request)
+std::string extensionType(HttpRequest &request)
 {
     std::string contentType;
 
@@ -292,6 +290,7 @@ bool HttpRequest::HandleRequest(std::map<int, std::string>& dToSend, int clientF
     }
     return false;
 }
+
 
 // [ SETTERS ] //
 

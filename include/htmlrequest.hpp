@@ -12,7 +12,12 @@ class HttpRequest
 		~HttpRequest();
 
 		bool									HandleRequest(std::map<int, std::string>& clientDataToSend, int client_fd);
-		
+		friend bool 							handleCgi(HttpRequest& request, const std::string& args);
+		friend bool								handleGet(HttpRequest& request, std::map<int, std::string>& dToSend, int clientFd);
+		friend bool								handlePost(HttpRequest& request, std::map<int, std::string>& dToSend, int clientFd);
+		friend bool								handleDelete(HttpRequest& request, std::map<int, std::string>& dToSend, int clientFd);
+		friend std::string						extensionType(HttpRequest &request);
+
 		void									setMethod(std::string method);
 		void									setUri(std::string uri);
 		void									setHttpVersion(std::string httpVersion);
