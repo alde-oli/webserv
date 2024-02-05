@@ -5,7 +5,7 @@
 #include "../include/Route.hpp"
 #include "../include/Cgi.hpp"
 #include "../include/MultipartFormData.hpp"
-#include "../include/HtmlRequest.hpp"
+#include "../include/htmlrequest.hpp"
 
 // Constructeur MultipartFormData, but :
 // Retirer et stocké dans un vector de struct data
