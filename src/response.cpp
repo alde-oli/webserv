@@ -169,13 +169,22 @@ void Response::build(int code_erreur, std::string body, ServerConfig servConfig,
 	else
 		this->response = "HTTP/1.1 " + code_str + caring500(code_erreur) + '\n';
 	this ->response = this->response + "Server : " + servConfig.getServerName() + '\n';
-	this->response = this->response + "Content-Type: " + ContentType +'\n';
-	// si body pas vide definir content length sue la taille de body et ajouter body. sinon chercher page d'erreur avec getErrorPage puis ouvrir fichier et ajouter le contenu 
-	ss << CountCharsInFile(body);
-	std::string chars_nbr = ss.str();
-	this->response = this->response + "Content-Length: " + chars_nbr + '\n';
-	this->response = this->response + getBody(body) + '\n';
-	std::string errorPage = servConfig.getErrorPage(code_erreur);
+	this->response = this->response + "Content-Type: " + ContentType +'\n'; 
+	if (!body.empty())
+	{
+		ss << CountCharsInFile(body);
+		std::string chars_nbr = ss.str();
+		this->response = this->response + "Content-Length: " + chars_nbr + '\n';
+		this->response = this->response + getBody(body) + '\n';
+	}
+	else
+	{
+		std::string errorPage = servConfig.getErrorPage(code_erreur);
+		ss << CountCharsInFile(errorPage);
+		std::string chars_nbr = ss.str();
+		this->response = this->response + "Content-Length: " + chars_nbr + '\n';
+		this->response = this->response + getBody(body) + '\n';		
+	}
 }
 
 void Response::setResponse(std::string response)
