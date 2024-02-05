@@ -172,17 +172,17 @@ void Response::build(int code_erreur, std::string body, ServerConfig servConfig,
 	this->response = this->response + "Content-Type: " + ContentType +'\n'; 
 	if (!body.empty())
 	{
-		ss << CountCharsInFile(body);
+		ss << body.length();
 		std::string chars_nbr = ss.str();
 		this->response = this->response + "Content-Length: " + chars_nbr + '\n';
-		this->response = this->response + getBody(body) + '\n';
+		this->response = this->response + body + "\n\n";
 	}
 	else
 	{
 		std::string errorPage = servConfig.getErrorPage(code_erreur);
 		ss << CountCharsInFile(errorPage);
 		std::string chars_nbr = ss.str();
-		this->response = this->response + "Content-Length: " + chars_nbr + '\n';
+		this->response = this->response + "Content-Length: " + chars_nbr + "\n\n";
 		this->response = this->response + getBody(body) + '\n';		
 	}
 }

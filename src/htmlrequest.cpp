@@ -168,34 +168,52 @@ void handleGet(HttpRequest& request, Response &response, int clientFd, ServerCon
 {
 	//change to find the route then search if the last elem from the request ends with a valid cgi extension
 	std::string path = request.uri.substr(0, request.uri.find_last_of('/') + 1);
+
 	if (server.hasRoute(path) == false)
+		response.build(404, "", server, "text/html"); return ;
+
+	Route route = server.getRoute(path);
+
+	if (route.isRedir() == true)
+		response.build(301, route.getRedirDir(), server, "text/html"); return ;
+
+	if (route.isMethodAllowed("GET") == false)
+		response.build(405, "", server, "text/html"); return ;
+
+
+	std::string ressource = request.uri.substr(request.uri.find_last_of('/') + 1);
+	
+	if (ressource.empty())
+	{
+		if (route.isListing() == true)
+		{
+			response.build(200, route.listRoute(), server, "text/html");
+			return ;
+		}
+		else if ( route.getPage() != "")
+			std::string resourcePath = path + route.getPage();
+	}
+	else
+	{
+		std::string extension = ressource.substr(ressource.find_last_of('.') + 1, ressource.find_first_of('?'));
+		if (route.isCgi(extension) == true)
+			handleCgi(request, response, clientFd, server, getCgiArgs(request.uri));
+		else
+			ressource = route.getRoot() + ressource;
+	}
+
+	std::string contentType = extensionType(request);
+	if (route.isUpload() == true || route.isForceUpload() == true)
+		contentType = "Content-Disposition: attachment; filename=" + request.uri.substr(request.uri.find_last_of('/') + 1) + ";" + "\n" + contentType;
+	if (access(ressource.c_str(), F_OK) == -1)
 	{
 		response.build(404, "", server, "text/html");
 		return ;
 	}
-	Route route = server.getRoute(path);
-	if (route.isMethodAllowed("GET") == false)
-	{
-		response.build(405, "", server, "text/html");
-		return ;
-	}
-
-	std::string resourcePath;
-	std::string contentType;
-
-	//change to get the root from the route and multiple other things
-	//add handling for default page, listing, redirection, upload and force
-
-
-	resourcePath = "www/webpages" + request.uri;
-	if (request.uri.find("/download") == 0)
-		contentType = extensionType(request);
-	else
-		contentType = "text/html";
-	std::ifstream file(resourcePath, std::ios::binary);
+	std::ifstream file(ressource, std::ios::binary);
 	if (!file.is_open())
 	{
-		response.build(404, "", server, contentType);
+		response.build(500, "", server, "text/html");
 		return ;
 	}
 	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
@@ -210,15 +228,36 @@ void handlePost(HttpRequest& request, Response &response, int clientFd, ServerCo
 {
 	std::vector<contentData>    content = request.formattedBody.getContent();
 
-	//get che route, if doesn't exist return 404, if it does, check if POST is allowed, if not return 405
+	//get the route, if doesn't exist return 404, if it does, check if POST is allowed, if not return 405
+	std::string path = request.uri.substr(0, request.uri.find_last_of('/') + 1);
 
-	//change to find the route then search if the last elem from the request ends with a valid cgi extension
-	if (request.uri.length() > 4 && !request.uri.find("/cgi"))
-		return handleCgi(request, response, clientFd, server);
+	if (server.hasRoute(path) == false)
+		response.build(404, "", server, "text/html"); return ;
+	
+	Route route = server.getRoute(path);
+
+	if (route.isMethodAllowed("POST") == false)
+		response.build(405, "", server, "text/html"); return ;
+
+	std::string ressource = request.uri.substr(request.uri.find_last_of('/') + 1);
+
+	// if the last elem from the request ends with a valid cgi extension
+	if (ressource.empty() == false)
+	{
+		std::string extension = ressource.substr(ressource.find_last_of('.') + 1);
+		if (route.isCgi(extension) == true)
+			handleCgi(request, response, clientFd, server, request.rawBody);
+		else
+			ressource = route.getRoot() + ressource;
+	}
 	//
 
 	//check if download is allowed and wich folder it redirects to
-
+	if (route.isDownload() == true)
+	{
+		
+		return ;
+	}
 	if (request.headers["Content-Type"].find("multipart/form-data") != std::string::npos)
 	{
 		request.formattedBody = MultipartFormData(request.headers["Content-Type"], request.rawBody);
