@@ -116,6 +116,16 @@ void	Route::setListing(const std::string listing)
 	this->_listing = setBool(listing);
 }
 
+void	Route::setUpload(const std::string upload)
+{
+	this->_upload = setBool(upload);
+}
+
+void	Route::setForceUpload(const std::string forceUpload)
+{
+	this->_forceUpload = setBool(forceUpload);
+}
+
 void	Route::setDownload(const std::string download)
 {
 	this->_isDownload = setBool(download);
@@ -134,6 +144,11 @@ void	Route::setRedir(const std::string redir)
 void	Route::setRedirDir(const std::string redirDir)
 {
 	this->_redirDir = setDirStr(redirDir);
+}
+
+void	Route::setCgi(const std::string cgi)
+{
+	this->_cgi = setCgiExtension(cgi);
 }
 
 
@@ -195,6 +210,16 @@ std::string	Route::listRoute() const
 	return html;
 }
 
+bool	Route::isUpload() const
+{
+	return (this->_upload);
+}
+
+bool	Route::isForceUpload() const
+{
+	return (this->_forceUpload);
+}
+
 bool	Route::isDownload() const
 {
 	return (this->_isDownload);
@@ -213,6 +238,14 @@ bool	Route::isRedir() const
 const std::string	&Route::getRedirDir() const
 {
 	return (this->_redirDir);
+}
+
+bool	Route::isCgi(std::string &extension) const
+{
+	for (std::vector<std::string>::const_iterator it = this->_cgi.begin(); it != this->_cgi.end(); it++)
+		if (*it == extension)
+			return (true);
+	return (false);
 }
 
 void	printErrorAndExit(const std::string &error, int exitCode)

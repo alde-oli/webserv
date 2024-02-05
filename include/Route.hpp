@@ -21,8 +21,12 @@ class Route
 		void						setListing(const std::string listing);
 		void						setDownload(const std::string download);
 		void						setDownloadDir(const std::string downloadDir);
+		void						setUpload(const std::string upload);
+		void						setForceUpload(const std::string forceUpload);
 		void						setRedir(const std::string redir);
 		void						setRedirDir(const std::string redirDir);
+		void						setCgi(const std::string cgi);
+
 
 		const std::string			&getRoute() const;
 		const std::string			&getRoot() const;
@@ -30,11 +34,15 @@ class Route
 		bool						isMethodAllowed(std::string requestMethod) const;
 		bool						isListing() const;
 		std::string					listRoute() const;
+		bool						isUpload() const;
+		bool						isForceUpload() const;
 		bool						isDownload() const;
 		const std::string			&getDownloadDir() const;
 		bool						isRedir() const;
 		const std::string			&getRedirDir() const;
+		bool						isCgi(std::string &extension) const;
 		void						verif() const;
+
 
 	private:
 		std::string					_id;
@@ -43,9 +51,11 @@ class Route
 		std::string					_page;
 		std::vector<std::string>	_methods;
 		bool						_listing;
+		bool						_upload;
+		bool						_forceUpload;
 		bool						_isDownload;
 		std::string					_downloadDir;
 		bool						_isRedir;
 		std::string					_redirDir;
-		std::string					_path;
+		std::vector<std::string>	_cgi;
 };

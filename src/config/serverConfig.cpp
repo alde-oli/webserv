@@ -49,7 +49,6 @@ ServerConfig	&ServerConfig::operator=(const ServerConfig &other)
 		this->_maxBodySize = other._maxBodySize;
 		this->_routes = other._routes;
 		this->_errors = other._errors;
-		this->_cgi = other._cgi;
 	}
 	return *this;
 }
@@ -64,13 +63,12 @@ std::ostream	&operator<<(std::ostream &out, const ServerConfig &server)
 	out << "-Server Default Page: " << server._defaultPage << std::endl;
 	out << "-Server Max Body Size: " << server._maxBodySize << std::endl;
 	out << "-Server is Default: " << server._isDefault << std::endl;
+	out << "-Server cookies: " << server._cookies << std::endl;
 	out << "-Server Routes: " << std::endl;
 	for (std::map<std::string, Route>::const_iterator it = server._routes.begin(); it != server._routes.end(); it++)
 		out << "\t" << it->second << std::endl;
 	out << "-Server Errors: " << std::endl;
 	out << server._errors << std::endl;
-	out << "-Server CGI: " << std::endl;
-	out << server._cgi << std::endl;
 	out << "o~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~o" << std::endl;
 	return out;
 }
@@ -107,10 +105,6 @@ void	ServerConfig::setMain(std::fstream &file, std::string &line)
 			this->_maxBodySize = setBodySize(line.substr(16));
 		else if (!line.find("default = "))
 			this->_isDefault = setBool(line.substr(10));
-		else if (!line.find("upload_routes = "))
-			setUpload(file, line.substr(16));
-		else if (!line.find("force_upload = "))
-			setForceUpload(file, line.substr(15));
 		else if (!line.find("cookies = "))
 			this->_cookies = setBool(line.substr(10));
 		else if (!line.find("name = "))
@@ -144,29 +138,6 @@ void	ServerConfig::setError(std::fstream &file, std::string &line)
 	}
 }
 
-
-void	ServerConfig::setCgi(std::fstream &file, std::string &line)
-{
-	std::string		key;
-	std::string		value;
-
-	while (std::getline(file, line) && line[0] != '[')
-	{
-		if (line.empty())
-			continue ;
-		if (!line.find("extension = "))
-			this->_cgi.addExtension(line.substr(12));
-		else if (!line.find("path = "))
-			this->_cgi.addPath(line.substr(8));
-		else
-		{
-			std::cerr << "Error: invalid cgi line: " << line << std::endl;
-			exit (1);
-		}
-	}
-}
-
-
 void	ServerConfig::setRoute(std::fstream &file, std::string &line)
 {
 	std::string		key;
@@ -194,6 +165,10 @@ void	ServerConfig::setRoute(std::fstream &file, std::string &line)
 			route.setMethods(line.substr(10));
 		else if (!line.find("listing = "))
 			route.setListing(line.substr(10));
+		else if (!line.find("upload = "))
+			route.setUpload(line.substr(9));
+		else if (!line.find("force_upload = "))
+			route.setForceUpload(line.substr(15));
 		else if (!line.find("download = "))
 			route.setDownload(line.substr(11));
 		else if (!line.find("download_dir = "))
@@ -202,6 +177,8 @@ void	ServerConfig::setRoute(std::fstream &file, std::string &line)
 			route.setRedir(line.substr(8));
 		else if (!line.find("redir_route = "))
 			route.setRedirDir(line.substr(14));
+		else if (!line.find("cgi = "))
+			route.setCgi(line.substr(5));
 		else
 		{
 			std::cerr << "Error: invalid route line: " << line << std::endl;
@@ -228,35 +205,6 @@ void	ServerConfig::setRoute(std::fstream &file, std::string &line)
 		}
 	}
 } 
-
-void	ServerConfig::setUpload(std::fstream &file, const std::string &line)
-{
-	std::stringstream tmpstream(line);
-	std::string tmp;
-
-	(void)file;
-	if (line.empty())
-		cerr_and_exit("Error: method is empty", "", 1);
-	while (std::getline(tmpstream, tmp, ' '))
-	{
-		if (!isRouteValid(tmp))
-			cerr_and_exit("Error: invalid route: ", tmp, 1);
-		this->_upload.push_back(tmp);
-	}
-}
-
-void	ServerConfig::setForceUpload(std::fstream &file, const std::string &line)
-{
-	(void)file;
-	if (line.empty())
-		cerr_and_exit("Error: method is empty", "", 1);
-	if (line == "TRUE")
-		this->_forceUpload = true;
-	else if (line == "FALSE")
-		this->_forceUpload = false;
-	else
-		cerr_and_exit("Error: invalid force upload: ", line, 1);
-}
 
 
 ///////////
@@ -314,30 +262,6 @@ const std::string	&ServerConfig::getErrorPage(int errorCode) const
 	return this->_errors.getPage(errorCode);
 }
 
-bool				ServerConfig::isValidCgi(const std::string &extension) const
-{
-	return this->_cgi.isValidExt(extension);
-}
-
-const std::string	&ServerConfig::getCgiPath() const
-{
-	return this->_cgi.getPath();
-}
-
-bool	ServerConfig::isUpload(const std::string &route) const
-{
-	for (std::vector<std::string>::const_iterator it = this->_upload.begin(); it != this->_upload.end(); it++)
-	{
-		if (*it == route)
-			return true;
-	}
-	return false;
-}
-
-bool	ServerConfig::isForceUpload() const
-{
-	return this->_forceUpload;
-}
 
 //////////////////
 // verification //
