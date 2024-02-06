@@ -5,7 +5,7 @@
 #include "../include/Route.hpp"
 #include "../include/Cgi.hpp"
 #include "../include/MultipartFormData.hpp"
-#include "../include/HtmlRequest.hpp"
+#include "../include/htmlrequest.hpp"
 #include "../include/response.hpp"
 
 // Constructor

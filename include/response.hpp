@@ -9,7 +9,7 @@
 class Response
 {
 	public:
-		void 		build(int code_erreur, std::string body, ServerConfig servConfig, std::string ContentType);
+		void 		build(int code_erreur, std::string body, ServerConfig servConfig, std::string ContentType, int isRedir);
 		void 		setResponse(std::string response);
 		std::string getResponse(void);
 		std::string caring200(int code_erreur);

@@ -154,7 +154,7 @@ std::string getBody(std::string filename)
 	return (content.str());
 }
 
-void Response::build(int code_erreur, std::string body, ServerConfig servConfig, std::string ContentType)
+void Response::build(int code_erreur, std::string body, ServerConfig servConfig, std::string ContentType, int isRedir)
 {
 	std::stringstream ss;
 	ss << code_erreur;
@@ -168,14 +168,28 @@ void Response::build(int code_erreur, std::string body, ServerConfig servConfig,
 		this->response = "HTTP/1.1 " + code_str + caring400(code_erreur) + '\n';
 	else
 		this->response = "HTTP/1.1 " + code_str + caring500(code_erreur) + '\n';
-	this ->response = this->response + "Server : " + servConfig.getServerName() + '\n';
-	this->response = this->response + "Content-Type: " + ContentType +'\n'; 
+	if (isRedir)
+		this ->response = this->response + "Location: " + servConfig.getServerName() + body;
+	else
+		this ->response = this->response + "Server : " + servConfig.getServerName() + '\n';
+	this->response = this->response + "Content-Type: " + ContentType +'\n';
 	if (!body.empty())
 	{
 		ss << body.length();
 		std::string chars_nbr = ss.str();
 		this->response = this->response + "Content-Length: " + chars_nbr + '\n';
-		this->response = this->response + body + "\n\n";
+		if (isRedir)
+		{
+			this->response = this->response + "<html>\n";
+			this->response = this->response + "<head><title>Redirection</title></head>\n";
+			this->response = this->response + "<body>\n";
+			this->response = this->response + "<p>La page a été temporairement déplacée <a href=\"";
+			this->response = this->response + servConfig.getServerName() + body + "\">ici</a>.</p>\n";
+			this->response = this->response + "</body>\n";
+			this->response = this->response + "</html>\n";
+		}
+		else
+			this->response = this->response + body + "\n\n";
 	}
 	else
 	{
