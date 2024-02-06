@@ -80,7 +80,7 @@ void handleCgi(HttpRequest& request, Response &response, int clientFd, ServerCon
 	int pipefd[2];
 
 	if (pipe(pipefd))
-	{response.build(500, "", server, "text/html"); return ;}
+	{response.build(500, "", server, "text/html", 0); return ;}
 	
 	std::string cgiPath = server.getRoute(request.uri.substr(0, request.uri.find_last_of('/') + 1)).getRoot();
 	std::vector<std::string>	envp;
@@ -123,9 +123,9 @@ void handleCgi(HttpRequest& request, Response &response, int clientFd, ServerCon
 		close(pipefd[0]);
 		waitpid(pid, NULL, 0);
 		if (!cgiOutput.empty())
-			response.build(200, cgiOutput, server, "text/html");
+			response.build(200, cgiOutput, server, "text/html", 0);
 		else
-			response.build(500 , "", server, "text/html");
+			response.build(500 , "", server, "text/html", 0);
 	}
 	deleteTab(env);
 }
@@ -163,23 +163,23 @@ void handleGet(HttpRequest& request, Response &response, int clientFd, ServerCon
 {
 	std::string path = request.uri.substr(0, request.uri.find_last_of('/') + 1);
 	if (server.hasRoute(path) == false)
-		{response.build(404, "", server, "text/html"); return ;}
+		{response.build(404, "", server, "text/html", 0); return ;}
 
 	Route route = server.getRoute(path);
 	if (route.isRedir() == true)
-		{response.build(301, route.getRedirDir(), server, "text/html"); return ;}
+		{response.build(301, route.getRedirDir(), server, "text/html", 1); return ;}
 	if (route.isMethodAllowed("GET") == false)
-		{response.build(405, "", server, "text/html"); return ;}
+		{response.build(405, "", server, "text/html", 0); return ;}
 
 	std::string ressource = request.uri.substr(request.uri.find_last_of('/') + 1);
 	if (ressource.empty())
 	{
 		if (route.isListing() == true)
-			{response.build(200, route.listRoute(), server, "text/html"); return ;}
+			{response.build(200, route.listRoute(), server, "text/html", 0); return ;}
 		else if ( route.getPage() != "")
 			std::string resourcePath = path + route.getPage();
 		else
-			{response.build(404, "", server, "text/html"); return ;}
+			{response.build(404, "", server, "text/html", 0); return ;}
 	}
 	else
 	{
@@ -194,13 +194,13 @@ void handleGet(HttpRequest& request, Response &response, int clientFd, ServerCon
 	if (route.isUpload() == true || route.isForceUpload() == true)
 		contentType = "Content-Disposition: attachment; filename=" + request.uri.substr(request.uri.find_last_of('/') + 1) + ";" + "\n" + contentType;
 	if (access(ressource.c_str(), F_OK) == -1)
-		{response.build(404, "", server, "text/html"); return ;}
+		{response.build(404, "", server, "text/html", 0); return ;}
 	std::ifstream file(ressource, std::ios::binary);
 	if (!file.is_open())
-		{response.build(500, "", server, "text/html");return ;}
+		{response.build(500, "", server, "text/html", 0);return ;}
 	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 	file.close();
-	response.build(200, content, server, contentType);
+	response.build(200, content, server, contentType, 0);
 }
 
 
@@ -211,7 +211,7 @@ void handlePost(HttpRequest& request, Response &response, int clientFd, ServerCo
 	std::string path = request.uri.substr(0, request.uri.find_last_of('/') + 1);
 
 	if (server.hasRoute(path) == false)
-		{response.build(404, "", server, "text/html"); return ;}
+		{response.build(404, "", server, "text/html", 0); return ;}
 	
 	Route route = server.getRoute(path);
 
@@ -219,7 +219,7 @@ void handlePost(HttpRequest& request, Response &response, int clientFd, ServerCo
 		{response.build(301, route.getRedirDir(), server, "text/html"); return ;}
 
 	if (route.isMethodAllowed("POST") == false)
-		{response.build(405, "", server, "text/html"); return ;}
+		{response.build(405, "", server, "text/html", 0); return ;}
 
 	std::string ressource = request.uri.substr(request.uri.find_last_of('/') + 1);
 
@@ -229,11 +229,11 @@ void handlePost(HttpRequest& request, Response &response, int clientFd, ServerCo
 		if (route.isCgi(extension) == true)
 			{handleCgi(request, response, clientFd, server, request.rawBody); return ;}
 		else
-			{response.build(404, "", server, "text/html"); return ;}
+			{response.build(404, "", server, "text/html", 0); return ;}
 	}
 
 	if (route.isDownload() == false)
-		{response.build(405, "", server, "text/html"); return ;}
+		{response.build(405, "", server, "text/html", 0); return ;}
 	
 	if (request.headers["Content-Type"].find("multipart/form-data") != std::string::npos)
 	{
@@ -253,15 +253,15 @@ void handlePost(HttpRequest& request, Response &response, int clientFd, ServerCo
 				file.close();
 
 				if (!file)
-					{response.build(500, "", server, "text/html"); return ;}
-				response.build(200, "", server, "text/html");
+					{response.build(500, "", server, "text/html", 0); return ;}
+				response.build(200, "", server, "text/html", 0);
 			}
 			else
-				{response.build(500, "", server, "text/html"); return ;}
+				{response.build(500, "", server, "text/html", 0); return ;}
 		}
 	}
 	else
-		response.build(400, "", server, "text/html");
+		response.build(400, "", server, "text/html", 0);
 }
 
 
@@ -271,25 +271,25 @@ void handleDelete(HttpRequest& request, Response &response, int clientFd, Server
 
 	if (server.hasRoute(path) == false)
 	{
-		response.build(404, "", server, "text/html");
+		response.build(404, "", server, "text/html", 0);
 		return ;
 	}
 
 	Route route = server.getRoute(path);
 	if (route.isMethodAllowed("DELETE") == false)
 	{
-		response.build(405, "", server, "text/html");
+		response.build(405, "", server, "text/html", 0);
 		return ;
 	}
 
 	std::string resourcePath = route.getRoot() + request.uri.substr(request.uri.find_last_of('/') + 1);
 
 	if (access(resourcePath.c_str(), F_OK) == -1)
-		response.build(404, "", server, "text/html");
+		response.build(404, "", server, "text/html", 0);
 	else if (remove(resourcePath.c_str()) != 0)
-		response.build(500, "", server, "text/html");
+		response.build(500, "", server, "text/html", 0);
 	else
-		response.build(200, "", server, "text/html");
+		response.build(200, "", server, "text/html", 0);
 };
 
 void HttpRequest::HandleRequest(Response &response, int clientFd, ServerConfig &server)
