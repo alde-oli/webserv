@@ -5,7 +5,7 @@
 #include "../include/Route.hpp"
 #include "../include/Cgi.hpp"
 #include "../include/MultipartFormData.hpp"
-#include "../include/HtmlRequest.hpp"
+#include "../include/htmlrequest.hpp"
 
 bool handleClientRequest(int client_fd, std::map<int, time_t>& clientActivity, std::map<int, std::string>& clientDataToSend)
 {
