@@ -107,7 +107,7 @@ void handleCgi(HttpRequest& request, Response &response, int clientFd, ServerCon
 		perrorAndExit("execve", EXIT_FAILURE);
 	} 
 	else if (pid < 0)
-		{response.build(500, "", server, "text/html"); return ;}
+		{response.build(500, "", server, "text/html", 0); return ;}
 	else
 	{
 		std::string cgiOutput;
@@ -216,7 +216,7 @@ void handlePost(HttpRequest& request, Response &response, int clientFd, ServerCo
 	Route route = server.getRoute(path);
 
 	if (route.isRedir() == true)
-		{response.build(301, route.getRedirDir(), server, "text/html"); return ;}
+		{response.build(301, route.getRedirDir(), server, "text/html", 1); return ;}
 
 	if (route.isMethodAllowed("POST") == false)
 		{response.build(405, "", server, "text/html", 0); return ;}

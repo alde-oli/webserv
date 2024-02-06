@@ -20,10 +20,12 @@ class ServerConfig
 		void							setMain(std::fstream &file, std::string &line);
 		void							setError(std::fstream &file, std::string &line);
 		void							setRoute(std::fstream &file, std::string &line);
+		void							setFd(int fd); 
 
 		void							checkValidity();
 
 		const std::string				&getId() const;
+		int								getFd() const;
 		const std::string				&getServerName() const;
 		const sockaddr_in				&getServerAddr() const;
 		bool							isDefault() const;
@@ -37,6 +39,7 @@ class ServerConfig
 
 	private:
 		std::string						_id;
+		int								_fd;
 		std::string						_serverName;
 		sockaddr_in						_serverAddr;
 		bool							_isDefault;

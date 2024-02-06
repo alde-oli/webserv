@@ -7,7 +7,7 @@
 #include "../include/MultipartFormData.hpp"
 #include "../include/htmlrequest.hpp"
 
-bool handleClientRequest(int client_fd, std::map<int, time_t>& clientActivity, std::map<int, std::string>& clientDataToSend)
+bool handleClientRequest(int client_fd, std::map<int, time_t>& clientActivity, std::map<int, Response>& clientDataToSend)
 {
 	char 		buffer[1024] = {0};
 
@@ -47,6 +47,7 @@ bool handleClientRequest(int client_fd, std::map<int, time_t>& clientActivity, s
 				to_read = 0;
 			}
 		}
+		// determiner le serveur a utiliser
 		if (!is_post_body)
 			hasDataToSend = request.HandleRequest(clientDataToSend, client_fd);
 		clientActivity[client_fd] = time(nullptr);  // Mettre à jour l'heure de la dernière activité

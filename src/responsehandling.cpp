@@ -19,7 +19,7 @@ int registerWriteEvent(int kq, int fd)
 	return 0;
 }
 
-int handleClientWrite(int fd, std::map<int, std::string>& clientActivity)
+int handleClientWrite(int fd, std::map<int, Response>& clientActivity)
 {
 	if (clientActivity.find(fd) == clientActivity.end() || clientActivity[fd].empty())
 		return -1;

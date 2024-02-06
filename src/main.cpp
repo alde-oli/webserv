@@ -9,12 +9,12 @@
 
 // Prototypes des fonctions
 
-int setupServerSocket();
+int setupServerSocket(ServerConfig &server);
 int handleNewConnection(int server_fd, int kq, std::map<int, time_t>& clientActivity);
-bool handleClientRequest(int client_fd, std::map<int, time_t>& clientActivity, std::map<int, std::string>& clientDataToSend);
+bool handleClientRequest(int client_fd, std::map<int, time_t>& clientActivity, std::map<int, Response>& clientDataToSend);
 void checkClientTimeouts(std::map<int, time_t>& clientActivity, int timeout);
 int registerWriteEvent(int kq, int fd);
-int handleClientWrite(int fd, std::map<int, std::string>& clientActivity);
+int handleClientWrite(int fd, std::map<int, Response>& clientActivity);
 int unregisterWriteEvent(int kq, int fd);
 
 static int close_and_perror(char *str, int fd)
@@ -47,37 +47,63 @@ static timespec precise_ft_timeout(int sec, int nsec)
 	return (timeout);
 }
 
-int runServer(ServerConfig &server)
+int runServer(std::vector<ServerConfig> &servers)
 {
-	std::map<int, std::string> dataToSend;
-	int server_fd = setupServerSocket();
-	if (server_fd < 0)
-		return -1;
+	for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); it++)
+	{
+		int server_fd = setupServerSocket(*it);
+		if (server_fd < 0)
+		{
+			for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); it++)
+				close(it->getFd());
+			return -1;
+		}
+		it->setFd(server_fd);
+	}
 
 	signal(SIGPIPE, SIG_IGN);
+
 	struct timeval sendTimeout = ft_timeout(300, 0);
+	struct timespec timeout = precise_ft_timeout(30, 0);
+	std::map<int, time_t> clientActivity;
+	const int idle_timeout = 10;
+
 	// Définir le timeout d'envoi sur le socket
-	int val = 1;
-	setsockopt(server_fd, SOL_SOCKET, SO_NOSIGPIPE, &val, sizeof(val));
-	if (setsockopt(server_fd, SOL_SOCKET, SO_SNDTIMEO, (char *)&sendTimeout, sizeof(sendTimeout)) < 0)
-		return (close_and_perror("setsockopt", 0));
+	for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); it++)
+	{
+		int val = 1;
+		setsockopt(it->getFd(), SOL_SOCKET, SO_NOSIGPIPE, &val, sizeof(val));
+		if (setsockopt(it->getFd(), SOL_SOCKET, SO_SNDTIMEO, (char *)&sendTimeout, sizeof(sendTimeout)) < 0)
+		{
+			for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); it++)
+				close(it->getFd());
+			return -1;
+		}
+	}
+
 	// Créer une kqueue
 	int kq = kqueue();
 	if (kq == -1)
 		return (close_and_perror("kqueue", 0));
 	struct kevent kev;
-	EV_SET(&kev, server_fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-	// Si error
-	if (kevent(kq, &kev, 1, NULL, 0, NULL) == -1)
-		return (close_and_perror("kevent add server_fd", server_fd));
-	struct timespec timeout = precise_ft_timeout(30, 0);
-	std::map<int, time_t> clientActivity;
-	// Timeout d'inactivité en secondes
-	const int idle_timeout = 10;
+	for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); it++)
+	{
+		EV_SET(&kev, it->getFd(), EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+		if (kevent(kq, &kev, 1, NULL, 0, NULL) == -1)
+		{
+			for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); it++)
+				close(it->getFd());
+			return (close_and_perror("kevent add server_fd", 0));
+		}
+	}
+
+	std::map<int, Response> dataToSend;
+	std::map<int, int> client_fd_to_server_fd;
+
 	while (true)
 	{
-		struct kevent events[32];
-		int nev = kevent(kq, NULL, 0, events, 32, &timeout);
+		struct kevent events[128];
+		int nev = kevent(kq, NULL, 0, events, 128, &timeout);
 
 		if (nev < 0)
 			return (close_and_perror("kevent wait", 0));
@@ -85,22 +111,29 @@ int runServer(ServerConfig &server)
 		{
 			int fd = events[i].ident;
 
-			if (fd == server_fd && events[i].filter == EVFILT_READ)
+			if (events[i].filter == EVFILT_READ)
 			{
-				// Gérer une nouvelle connexion
-				int client_fd = handleNewConnection(server_fd, kq, clientActivity);
-				if (client_fd != -1)
+				bool is_new = false;
+				for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); it++)
+					if (fd == it->getFd())
+						is_new = true;
+				if (is_new)
 				{
-					struct kevent client_event;
-					EV_SET(&client_event, client_fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+					// Gérer une nouvelle connexion
+					int client_fd = handleNewConnection(fd, kq, clientActivity);
+					client_fd_to_server_fd[client_fd] = fd;
+					if (client_fd != -1)
+					{
+						struct kevent client_event;
+						EV_SET(&client_event, client_fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+					}
 				}
-			}
-			else if (events[i].filter == EVFILT_READ)
-			{
-				// Gérer la demande du client
-				bool hasDataToSend = handleClientRequest(fd, clientActivity, dataToSend);
-				if (hasDataToSend)
-					registerWriteEvent(kq, fd); // Préparer l'événement, appliqué dans le prochain passage
+				else
+				{
+					bool hasDataToSend = handleClientRequest(client_fd_to_server_fd[fd], clientActivity, dataToSend);
+					if (hasDataToSend)
+						registerWriteEvent(kq, fd); // Préparer l'événement, appliqué dans le prochain passage
+				}
 			}
 			else if (events[i].filter == EVFILT_WRITE)
 			{
@@ -108,12 +141,12 @@ int runServer(ServerConfig &server)
 				if (handleClientWrite(fd, dataToSend) == -1)
 					unregisterWriteEvent(kq, fd); // Préparer la désinscription, appliquée dans le prochain passage
 			}
-		
 		}
 		checkClientTimeouts(clientActivity, idle_timeout);
 	}
 	// Fermer le socket serveur
-	close(server_fd);
+	for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); it++)
+		close(it->getFd());
 	return 0;
 }
 

@@ -206,6 +206,11 @@ void	ServerConfig::setRoute(std::fstream &file, std::string &line)
 	}
 } 
 
+void	ServerConfig::setFd(int fd)
+{
+	this->_fd = fd;
+}
+
 
 ///////////
 //getters//
@@ -214,6 +219,11 @@ void	ServerConfig::setRoute(std::fstream &file, std::string &line)
 const std::string	&ServerConfig::getId() const
 {
 	return this->_id;
+}
+
+int					ServerConfig::getFd() const
+{
+	return this->_fd;
 }
 
 const std::string	&ServerConfig::getServerName() const
