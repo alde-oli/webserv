@@ -5,7 +5,9 @@
 #include "../include/Route.hpp"
 #include "../include/Cgi.hpp"
 #include "../include/MultipartFormData.hpp"
-#include "../include/HtmlRequest.hpp"
+#include "../include/htmlrequest.hpp"
+
+//changer pour juste deconnecter le client si erreur
 
 int registerWriteEvent(int kq, int fd)
 {

@@ -60,12 +60,6 @@ std::string getCgiArgs(const std::string& uri)
 	return "";
 }
 
-static bool pipe_error(char *msg, int boolean)
-{
-	perror(msg);
-	return (boolean);
-}
-
 static void perrorAndExit(char *msg, int code)
 {
 	perror(msg);
@@ -86,11 +80,10 @@ void handleCgi(HttpRequest& request, Response &response, int clientFd, ServerCon
 	int pipefd[2];
 
 	if (pipe(pipefd))
-		pipe_error("pipe", false);
-
-	std::string	envp;
-	//separate cgi path , cgi filename and args
-	// add root path to filename
+	{response.build(500, "", server, "text/html"); return ;}
+	
+	std::string cgiPath = server.getRoute(request.uri.substr(0, request.uri.find_last_of('/') + 1)).getRoot();
+	std::vector<std::string>	envp;
 	std::stringstream argStream(args);
 	std::string arg;
 	while (std::getline(argStream, arg, '&'))
@@ -113,6 +106,8 @@ void handleCgi(HttpRequest& request, Response &response, int clientFd, ServerCon
 		execve(cgiPath.c_str(), argv, env);
 		perrorAndExit("execve", EXIT_FAILURE);
 	} 
+	else if (pid < 0)
+		{response.build(500, "", server, "text/html"); return ;}
 	else
 	{
 		std::string cgiOutput;
@@ -166,32 +161,25 @@ std::string extensionType(HttpRequest &request)
 
 void handleGet(HttpRequest& request, Response &response, int clientFd, ServerConfig &server)
 {
-	//change to find the route then search if the last elem from the request ends with a valid cgi extension
 	std::string path = request.uri.substr(0, request.uri.find_last_of('/') + 1);
-
 	if (server.hasRoute(path) == false)
-		response.build(404, "", server, "text/html"); return ;
+		{response.build(404, "", server, "text/html"); return ;}
 
 	Route route = server.getRoute(path);
-
 	if (route.isRedir() == true)
-		response.build(301, route.getRedirDir(), server, "text/html"); return ;
-
+		{response.build(301, route.getRedirDir(), server, "text/html"); return ;}
 	if (route.isMethodAllowed("GET") == false)
-		response.build(405, "", server, "text/html"); return ;
-
+		{response.build(405, "", server, "text/html"); return ;}
 
 	std::string ressource = request.uri.substr(request.uri.find_last_of('/') + 1);
-	
 	if (ressource.empty())
 	{
 		if (route.isListing() == true)
-		{
-			response.build(200, route.listRoute(), server, "text/html");
-			return ;
-		}
+			{response.build(200, route.listRoute(), server, "text/html"); return ;}
 		else if ( route.getPage() != "")
 			std::string resourcePath = path + route.getPage();
+		else
+			{response.build(404, "", server, "text/html"); return ;}
 	}
 	else
 	{
@@ -201,63 +189,52 @@ void handleGet(HttpRequest& request, Response &response, int clientFd, ServerCon
 		else
 			ressource = route.getRoot() + ressource;
 	}
-
+	
 	std::string contentType = extensionType(request);
 	if (route.isUpload() == true || route.isForceUpload() == true)
 		contentType = "Content-Disposition: attachment; filename=" + request.uri.substr(request.uri.find_last_of('/') + 1) + ";" + "\n" + contentType;
 	if (access(ressource.c_str(), F_OK) == -1)
-	{
-		response.build(404, "", server, "text/html");
-		return ;
-	}
+		{response.build(404, "", server, "text/html"); return ;}
 	std::ifstream file(ressource, std::ios::binary);
 	if (!file.is_open())
-	{
-		response.build(500, "", server, "text/html");
-		return ;
-	}
+		{response.build(500, "", server, "text/html");return ;}
 	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 	file.close();
 	response.build(200, content, server, contentType);
 }
 
 
-
-
 void handlePost(HttpRequest& request, Response &response, int clientFd, ServerConfig &server)
 {
 	std::vector<contentData>    content = request.formattedBody.getContent();
 
-	//get the route, if doesn't exist return 404, if it does, check if POST is allowed, if not return 405
 	std::string path = request.uri.substr(0, request.uri.find_last_of('/') + 1);
 
 	if (server.hasRoute(path) == false)
-		response.build(404, "", server, "text/html"); return ;
+		{response.build(404, "", server, "text/html"); return ;}
 	
 	Route route = server.getRoute(path);
 
+	if (route.isRedir() == true)
+		{response.build(301, route.getRedirDir(), server, "text/html"); return ;}
+
 	if (route.isMethodAllowed("POST") == false)
-		response.build(405, "", server, "text/html"); return ;
+		{response.build(405, "", server, "text/html"); return ;}
 
 	std::string ressource = request.uri.substr(request.uri.find_last_of('/') + 1);
 
-	// if the last elem from the request ends with a valid cgi extension
 	if (ressource.empty() == false)
 	{
 		std::string extension = ressource.substr(ressource.find_last_of('.') + 1);
 		if (route.isCgi(extension) == true)
-			handleCgi(request, response, clientFd, server, request.rawBody);
+			{handleCgi(request, response, clientFd, server, request.rawBody); return ;}
 		else
-			ressource = route.getRoot() + ressource;
+			{response.build(404, "", server, "text/html"); return ;}
 	}
-	//
 
-	//check if download is allowed and wich folder it redirects to
-	if (route.isDownload() == true)
-	{
-		
-		return ;
-	}
+	if (route.isDownload() == false)
+		{response.build(405, "", server, "text/html"); return ;}
+	
 	if (request.headers["Content-Type"].find("multipart/form-data") != std::string::npos)
 	{
 		request.formattedBody = MultipartFormData(request.headers["Content-Type"], request.rawBody);
@@ -267,32 +244,24 @@ void handlePost(HttpRequest& request, Response &response, int clientFd, ServerCo
 			if (content[i].filename.empty())
 				continue;
 
-			//change to get route root from the server
-			std::string filePath = "www/webpages/kittenland/" + content[i].filename;
-			//
-			std::ofstream file(filePath, std::ios::out | std::ios::trunc | std::ios::binary);
+			std::string filePath = route.getDownloadDir() + content[i].filename;
 
+			std::ofstream file(filePath, std::ios::out | std::ios::trunc | std::ios::binary);
 			if (file.is_open())
 			{
 				file.write(content[i].content.data(), content[i].content.size());
 				file.close();
 
 				if (!file)
-				{
-					response.build(500, "", server);
-					break;
-				}
-				response.build(200, "", server);
+					{response.build(500, "", server, "text/html"); return ;}
+				response.build(200, "", server, "text/html");
 			}
 			else
-			{
-				response.build(500, "", server);
-				break;
-			}
+				{response.build(500, "", server, "text/html"); return ;}
 		}
 	}
 	else
-		response.build(400, "", server);
+		response.build(400, "", server, "text/html");
 }
 
 

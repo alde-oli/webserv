@@ -117,7 +117,7 @@ int runServer(ServerConfig &server)
 	return 0;
 }
 
-int setupServerSocket()
+int setupServerSocket(ServerConfig &server)
 {
 	int server_fd;
 	struct sockaddr_in address;
@@ -136,9 +136,7 @@ int setupServerSocket()
 	if (fcntl(server_fd, F_SETFL, flags) == -1)
 		return (close_and_perror("fcntl F_SETFL O_NONBLOCK", server_fd));
 	// Définir l'adresse du serveur
-	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = inet_addr("127.0.0.1");
-	address.sin_port = htons(PORT);
+	address = server.getServerAddr();
 	// Lier le socket
 	if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
 		return (close_and_perror("bind failed", server_fd));

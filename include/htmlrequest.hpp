@@ -13,7 +13,7 @@ class HttpRequest
 		~HttpRequest();
 
 		void									HandleRequest(Response &response, int clientFd, ServerConfig &server);
-		friend void 							handleCgi(HttpRequest& request, Response &response, int clientFd, ServerConfig &server);
+		friend void 							handleCgi(HttpRequest& request, Response &response, int clientFd, ServerConfig &server, std::string args);
 		friend void								handleGet(HttpRequest& request, Response &response, int clientFd, ServerConfig &server);
 		friend void								handlePost(HttpRequest& request, Response &response, int clientFd, ServerConfig &server);
 		friend void								handleDelete(HttpRequest& request, Response &response, int clientFd, ServerConfig &server);
