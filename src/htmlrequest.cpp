@@ -3,7 +3,6 @@
 #include "../include/Error.hpp"
 #include "../include/parsing.hpp"
 #include "../include/Route.hpp"
-#include "../include/Cgi.hpp"
 #include "../include/MultipartFormData.hpp"
 #include "../include/htmlrequest.hpp"
 #include "../include/response.hpp"
@@ -60,9 +59,9 @@ std::string getCgiArgs(const std::string& uri)
 	return "";
 }
 
-static void perrorAndExit(char *msg, int code)
+static void perrorAndExit(std::string msg, int code)
 {
-	perror(msg);
+	perror(msg.c_str());
 	if (code)
 		exit (code);
 }
@@ -76,6 +75,7 @@ static void closeAndDup(int fd1, int fd2, int dupFrom, int dupTo)
 
 void handleCgi(HttpRequest& request, Response &response, int clientFd, ServerConfig &server, std::string args)
 {
+	(void)clientFd;
 	int pid;
 	int pipefd[2];
 
@@ -107,7 +107,7 @@ void handleCgi(HttpRequest& request, Response &response, int clientFd, ServerCon
 		perrorAndExit("execve", EXIT_FAILURE);
 	} 
 	else if (pid < 0)
-		{response.build(500, "", server, "text/html", 0); return ;}
+		{response.build(500, "", server, "text/html", 0); deleteTab(env); return ;}
 	else
 	{
 		std::string cgiOutput;
@@ -161,17 +161,22 @@ std::string extensionType(HttpRequest &request)
 
 void handleGet(HttpRequest& request, Response &response, int clientFd, ServerConfig &server)
 {
+	std::cout << "----GET request----" << std::endl;
+	std::cout << "uri: " << request.uri << std::endl;
 	std::string path = request.uri.substr(0, request.uri.find_last_of('/') + 1);
 	if (server.hasRoute(path) == false)
 		{response.build(404, "", server, "text/html", 0); return ;}
 
 	Route route = server.getRoute(path);
+	std::cout << "route: "<< std::endl << route << std::endl;
+
 	if (route.isRedir() == true)
 		{response.build(301, route.getRedirDir(), server, "text/html", 1); return ;}
 	if (route.isMethodAllowed("GET") == false)
 		{response.build(405, "", server, "text/html", 0); return ;}
 
 	std::string ressource = request.uri.substr(request.uri.find_last_of('/') + 1);
+	std::cout << "ressource: " << ressource << std::endl;
 	if (ressource.empty())
 	{
 		if (route.isListing() == true)
@@ -183,7 +188,8 @@ void handleGet(HttpRequest& request, Response &response, int clientFd, ServerCon
 	}
 	else
 	{
-		std::string extension = ressource.substr(ressource.find_last_of('.') + 1, ressource.find_first_of('?'));
+		std::string extension = ressource.substr(ressource.find_last_of('.') + 1, ressource.find_first_of('?') - ressource.find_last_of('.') - 1);
+		std::cout << "extension: " << extension << std::endl;
 		if (route.isCgi(extension) == true)
 			handleCgi(request, response, clientFd, server, getCgiArgs(request.uri));
 		else
@@ -191,8 +197,8 @@ void handleGet(HttpRequest& request, Response &response, int clientFd, ServerCon
 	}
 	
 	std::string contentType = extensionType(request);
-	if (route.isUpload() == true || route.isForceUpload() == true)
-		contentType = "Content-Disposition: attachment; filename=" + request.uri.substr(request.uri.find_last_of('/') + 1) + ";" + "\n" + contentType;
+	if (route.isUpload() == true && route.isForceUpload() == true)
+		contentType = contentType + ";\n" + "Content-Disposition: attachment; filename=" + request.uri.substr(request.uri.find_last_of('/') + 1) + ";" + "\n";
 	if (access(ressource.c_str(), F_OK) == -1)
 		{response.build(404, "", server, "text/html", 0); return ;}
 	std::ifstream file(ressource, std::ios::binary);
@@ -206,6 +212,7 @@ void handleGet(HttpRequest& request, Response &response, int clientFd, ServerCon
 
 void handlePost(HttpRequest& request, Response &response, int clientFd, ServerConfig &server)
 {
+	(void)clientFd;
 	std::vector<contentData>    content = request.formattedBody.getContent();
 
 	std::string path = request.uri.substr(0, request.uri.find_last_of('/') + 1);
@@ -267,6 +274,7 @@ void handlePost(HttpRequest& request, Response &response, int clientFd, ServerCo
 
 void handleDelete(HttpRequest& request, Response &response, int clientFd, ServerConfig &server)
 {
+	(void)clientFd;
 	std::string path = request.uri.substr(0, request.uri.find_last_of('/') + 1);
 
 	if (server.hasRoute(path) == false)
@@ -299,17 +307,12 @@ void HttpRequest::HandleRequest(Response &response, int clientFd, ServerConfig &
 	
 	for (int i = 0; i < 3; i++)
 	{
-			if (this->method == requests[i])
-				handlers[i](*this, response, clientFd, server);
+		if (this->method == requests[i])
+		{
+			handlers[i](*this, response, clientFd, server);
+			break;
+		}
 	}
-}
-
-
-// [ SETTERS ] //
-
-void	HttpRequest::setMethod		(std::string method)
-{
-	this->method = method;
 }
 
 void	HttpRequest::setUri			(std::string uri)
@@ -337,6 +340,10 @@ void 	HttpRequest::setFormattedBody(MultipartFormData formattedBody)
 	this->formattedBody = formattedBody;
 }
 
+void 	HttpRequest::setRawBody(std::string Rawbody)
+{
+	this->rawBody = Rawbody;
+}
 
 // [ GETTER ] //
 
@@ -368,4 +375,9 @@ std::map<std::string, std::string>	HttpRequest::getheaders(void)
 MultipartFormData   HttpRequest::getformattedBody(void)
 {
 	return (this->formattedBody);
+}
+
+std::string HttpRequest::getRawBody(void)
+{
+	return (this->rawBody);
 }

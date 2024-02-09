@@ -3,7 +3,6 @@
 #include "../include/Error.hpp"
 #include "../include/parsing.hpp"
 #include "../include/Route.hpp"
-#include "../include/Cgi.hpp"
 #include "../include/MultipartFormData.hpp"
 #include "../include/htmlrequest.hpp"
 
@@ -11,15 +10,15 @@
 
 int setupServerSocket(ServerConfig &server);
 int handleNewConnection(int server_fd, int kq, std::map<int, time_t>& clientActivity);
-bool handleClientRequest(int client_fd, std::map<int, time_t>& clientActivity, std::map<int, Response>& clientDataToSend);
+void handleClientRequest(ServerConfig server, int client_fd, std::map<int, time_t>& clientActivity, Response &clientDataToSend);
 void checkClientTimeouts(std::map<int, time_t>& clientActivity, int timeout);
 int registerWriteEvent(int kq, int fd);
-int handleClientWrite(int fd, std::map<int, Response>& clientActivity);
+int handleClientWrite(Response& dataToSend, int fd, int kq);
 int unregisterWriteEvent(int kq, int fd);
 
-static int close_and_perror(char *str, int fd)
+static int close_and_perror(std::string str, int fd)
 {
-	perror(str);
+	perror(str.c_str());
 
 	if (fd)
 		close (fd);
@@ -65,8 +64,9 @@ int runServer(std::vector<ServerConfig> &servers)
 
 	struct timeval sendTimeout = ft_timeout(300, 0);
 	struct timespec timeout = precise_ft_timeout(30, 0);
-	std::map<int, time_t> clientActivity;
 	const int idle_timeout = 10;
+
+	std::map<int, time_t> clientActivity;
 
 	// Définir le timeout d'envoi sur le socket
 	for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); it++)
@@ -130,17 +130,18 @@ int runServer(std::vector<ServerConfig> &servers)
 				}
 				else
 				{
-					bool hasDataToSend = handleClientRequest(client_fd_to_server_fd[fd], clientActivity, dataToSend);
-					if (hasDataToSend)
-						registerWriteEvent(kq, fd); // Préparer l'événement, appliqué dans le prochain passage
+					for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); it++)
+						if (client_fd_to_server_fd[fd] == it->getFd())
+						{
+							Response data;
+							dataToSend[fd] = data;
+							handleClientRequest(*it, fd, clientActivity, dataToSend[fd]);
+						}
+					registerWriteEvent(kq, fd); // Préparer l'événement, appliqué dans le prochain passage
 				}
 			}
 			else if (events[i].filter == EVFILT_WRITE)
-			{
-				// Gérer l'envoi de données au client
-				if (handleClientWrite(fd, dataToSend) == -1)
-					unregisterWriteEvent(kq, fd); // Préparer la désinscription, appliquée dans le prochain passage
-			}
+				handleClientWrite(dataToSend[fd], fd, kq);
 		}
 		checkClientTimeouts(clientActivity, idle_timeout);
 	}
@@ -154,7 +155,6 @@ int setupServerSocket(ServerConfig &server)
 {
 	int server_fd;
 	struct sockaddr_in address;
-	int addrlen = sizeof(address);
 
 	// Ignorer SIGPIPE
 	signal(SIGPIPE, SIG_IGN);
@@ -212,4 +212,13 @@ void checkClientTimeouts(std::map<int, time_t>& clientActivity, int timeout)
 		else
 			++it;
 	}
+}
+
+std::vector<ServerConfig> getConfig(std::string &configFile);
+
+int main()
+{
+	std::string configFile = "config.ini";
+	std::vector<ServerConfig> servers = getConfig(configFile);
+	runServer(servers);
 }

@@ -18,5 +18,5 @@ void						cerr_and_exit(std::string msg, std::string support, int code);
 bool 						tryPath(const std::string path);
 
 void setServer(std::fstream &file, std::string &line, ServerConfig &server);
-std::map<std::string, ServerConfig> getConfig(std::string configFile);
+std::vector<ServerConfig> getConfig(std::string &configFile);
 int	countDeuxPoints(std::string &line);

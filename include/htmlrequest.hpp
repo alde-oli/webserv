@@ -9,7 +9,7 @@ class HttpRequest
 	public:		
 		HttpRequest(){};
 		HttpRequest(const std::string& requestString, int client_fd);
-		HttpRequest(const HttpRequest &other) {};
+		HttpRequest(const HttpRequest &other) {(void)other;};
 		~HttpRequest();
 
 		void									HandleRequest(Response &response, int clientFd, ServerConfig &server);
@@ -25,6 +25,7 @@ class HttpRequest
 		void									setClientFd(int clientFd);
 		void									setHeaders(std::map<std::string, std::string> headers);
 		void 									setFormattedBody(MultipartFormData formattedBody);
+		void									setRawBody(std::string rawBody);
 
 		std::string								getMethod(void);
 		std::string								getUri(void);
@@ -32,6 +33,8 @@ class HttpRequest
 		int										getClientFd(void);
 		std::map<std::string, std::string>		getheaders(void);
 		MultipartFormData						getformattedBody(void);
+		std::string								getRawBody(void);
+
 
 		private:
 			std::string							method;

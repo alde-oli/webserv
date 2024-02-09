@@ -3,23 +3,45 @@
 #include "../include/Error.hpp"
 #include "../include/parsing.hpp"
 #include "../include/Route.hpp"
-#include "../include/Cgi.hpp"
 #include "../include/MultipartFormData.hpp"
-#include "../include/HtmlRequest.hpp"
+#include "../include/htmlrequest.hpp"
 
 //////////////////////////////
 //contructors and destructor//
 //////////////////////////////
 
 Route::Route()
-	: _id(""), _route(""), _root(""), _page(""), _methods(), _listing(false), _isDownload(false), _downloadDir(""), _isRedir(false), _redirDir("")
 {
+	_id = "";
+	_route = "";
+	_root = "";
+	_page = "";
+	_methods.clear();
+	_listing = false;
+	_upload = false;
+	_forceUpload = false;
+	_isDownload = false;
+	_downloadDir = "";
+	_isRedir = false;
+	_redirDir = "";
+	_cgi.clear();
 }
 
 Route::Route(const std::string &id)
-	: _route(""), _root(""), _page(""), _methods(), _listing(false), _isDownload(false), _downloadDir(""), _isRedir(false), _redirDir("")
 {
-	this->_id = id;
+	_id = id;
+	_route = "";
+	_root = "";
+	_page = "";
+	_methods.clear();
+	_listing = false;
+	_upload = false;
+	_forceUpload = false;
+	_isDownload = false;
+	_downloadDir = "";
+	_isRedir = false;
+	_redirDir = "";
+	_cgi.clear();
 }
 
 Route::Route(const Route &other)
@@ -65,10 +87,15 @@ std::ostream	&operator<<(std::ostream &out, const Route &route)
 		out << *it << " ";
 	out << std::endl;
 	out << "Listing: " << route._listing << std::endl;
+	out << "Upload: " << route._upload << std::endl;
+	out << "ForceUpload: " << route._forceUpload << std::endl;
 	out << "IsDownload: " << route._isDownload << std::endl;
 	out << "DownloadDir: " << route._downloadDir << std::endl;
 	out << "IsRedir: " << route._isRedir << std::endl;
 	out << "RedirDir: " << route._redirDir << std::endl;
+	out << "Cgi: ";
+	for (std::vector<std::string>::const_iterator it = route._cgi.begin(); it != route._cgi.end(); it++)
+		out << *it << " ";
 	out << "‾‾‾‾‾‾‾‾‾‾‾‾" << std::endl;
 	for (unsigned int i = 0; i < route._id.length(); i++)
 		out << "‾";
@@ -200,7 +227,7 @@ std::string	Route::listRoute() const
 		{
 			std::string fileName = ent->d_name;
 			if (fileName != "." && fileName != "..")
-				html += "<li><a href='" + fileName + "'>" + fileName + "</a></li>";
+				html += "<li>" + fileName + "</a></li>";
 		}
 		closedir(dir);
 	}

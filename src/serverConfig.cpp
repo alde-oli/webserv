@@ -178,7 +178,7 @@ void	ServerConfig::setRoute(std::fstream &file, std::string &line)
 		else if (!line.find("redir_route = "))
 			route.setRedirDir(line.substr(14));
 		else if (!line.find("cgi = "))
-			route.setCgi(line.substr(5));
+			route.setCgi(line.substr(6));
 		else
 		{
 			std::cerr << "Error: invalid route line: " << line << std::endl;

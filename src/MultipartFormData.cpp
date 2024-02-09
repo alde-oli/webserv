@@ -3,7 +3,6 @@
 #include "../include/Error.hpp"
 #include "../include/parsing.hpp"
 #include "../include/Route.hpp"
-#include "../include/Cgi.hpp"
 #include "../include/MultipartFormData.hpp"
 #include "../include/htmlrequest.hpp"
 

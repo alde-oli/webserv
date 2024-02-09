@@ -121,7 +121,7 @@ static int	CountCharsInFile(std::string filename)
 
 	if (!file.is_open())
 	{
-		std::cerr << "Error builing the response: File failed to open" << std::endl;
+		std::cerr << "[CountCharsInFile]Error builing the response: File failed to open" << std::endl;
 		return (-1);
 	}
 	int	counter = 0;
@@ -140,7 +140,7 @@ std::string getBody(std::string filename)
 
 	if (!file.is_open())
 	{
-		std::cerr << "Error builing the response: File failed to open" << std::endl;
+		std::cerr << "[getBody]Error builing the response: File failed to open" << std::endl;
 		return (NULL);
 	}
 
@@ -159,20 +159,20 @@ void Response::build(int code_erreur, std::string body, ServerConfig servConfig,
 	std::stringstream ss;
 	ss << code_erreur;
 	std::string code_str = ss.str();
-
 	if (code_erreur < 300)
-		this->response = "HTTP/1.1 " + code_str + caring200(code_erreur) + '\n';
+		this->response = "HTTP/1.1 " + code_str + " " + caring200(code_erreur) + '\n';
 	else if (code_erreur < 400)
-		this->response = "HTTP/1.1 " + code_str + caring300(code_erreur) + '\n';
+		this->response = "HTTP/1.1 " + code_str + " " + caring300(code_erreur) + '\n';
 	else if (code_erreur < 500)
-		this->response = "HTTP/1.1 " + code_str + caring400(code_erreur) + '\n';
+		this->response = "HTTP/1.1 " + code_str + " " + caring400(code_erreur) + '\n';
 	else
-		this->response = "HTTP/1.1 " + code_str + caring500(code_erreur) + '\n';
+		this->response = "HTTP/1.1 " + code_str + " " + caring500(code_erreur) + '\n';
 	if (isRedir)
-		this ->response = this->response + "Location: " + servConfig.getServerName() + body;
-	else
-		this ->response = this->response + "Server : " + servConfig.getServerName() + '\n';
+		this ->response = this->response + "Location: " + servConfig.getServerName() + body + '\n';
+	this ->response = this->response + "Server : " + servConfig.getServerName() + '\n';
 	this->response = this->response + "Content-Type: " + ContentType +'\n';
+
+
 	if (!body.empty())
 	{
 		ss << body.length();
@@ -189,15 +189,17 @@ void Response::build(int code_erreur, std::string body, ServerConfig servConfig,
 			this->response = this->response + "</html>\n";
 		}
 		else
-			this->response = this->response + body + "\n\n";
+			this->response = this->response + "\n" + body + "\n\n";
 	}
 	else
 	{
-		std::string errorPage = servConfig.getErrorPage(code_erreur);
-		ss << CountCharsInFile(errorPage);
+		//std::string errorPage = servConfig.getErrorPage(code_erreur);
+		std::string errorPage = "aled y a eu une erreur";
+		if (body == "vfgffcmh,j.g,jhfgmjgf")
+			ss << CountCharsInFile(errorPage);
 		std::string chars_nbr = ss.str();
 		this->response = this->response + "Content-Length: " + chars_nbr + "\n\n";
-		this->response = this->response + getBody(body) + '\n';		
+		this->response = this->response + errorPage + '\n';		
 	}
 }
 

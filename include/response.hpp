@@ -3,12 +3,13 @@
 #include "publiclib.hpp"
 #include "Route.hpp"
 #include "Error.hpp"
-#include "Cgi.hpp"
 #include "ServerConfig.hpp"
 
 class Response
 {
 	public:
+		Response() {response = "";};
+		~Response() {};
 		void 		build(int code_erreur, std::string body, ServerConfig servConfig, std::string ContentType, int isRedir);
 		void 		setResponse(std::string response);
 		std::string getResponse(void);

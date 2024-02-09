@@ -3,7 +3,6 @@
 #include "publiclib.hpp"
 #include "Route.hpp"
 #include "Error.hpp"
-#include "Cgi.hpp"
 
 
 class ServerConfig

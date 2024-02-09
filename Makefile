@@ -1,48 +1,44 @@
-NAME = MaisQuelServeurIncroyableIlEstVraimentTropBienLesGensQuiLOntFaitSontVraimentDesGenies
-
+# Compiler settings - Can be customized.
 CXX = g++
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -fsanitize=address
 
-SRCDIR = src
-INCDIR = include
-OBJDIR = obj
+# Project name
+EXECUTABLE = webserv
 
-GREEN = \033[0;32m
-BLUE = \033[0;34m
-VIOLET = \033[0;35m
-BOLD = \033[1m
-NC = \033[0m
+# Directories
+SRC_DIRS = src src/config
+OBJ_DIR = obj
+INCLUDE_DIR = include
 
-SOURCES = $(wildcard $(SRCDIR)/*.cpp) $(wildcard $(SRCDIR)/*/*.cpp)
-OBJECTS = $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(SOURCES))
+# Finds all .cpp files in SRC_DIRS
+SOURCES = $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.cpp))
 
-all: $(NAME)
+# Object files to be created
+OBJECTS = $(patsubst src/%.cpp,$(OBJ_DIR)/%.o,$(SOURCES))
+OBJECTS := $(patsubst src/config/%.cpp,$(OBJ_DIR)/%.o,$(OBJECTS))
 
-$(OBJDIR):
-	@mkdir -p $(OBJDIR)
+# Dependencies
+INCLUDES = -I$(INCLUDE_DIR)
 
-$(NAME): $(OBJDIR) $(OBJECTS)
-	@echo -e "$(GREEN)$(BOLD)[ ok ] files compiled$(NC)"
-	@$(CXX) $(CXXFLAGS) -o $(NAME) $(OBJECTS) -I$(INCDIR) -g -D PORT=8080
-	@./$(NAME) || (echo -e "$(RED)$(BOLD)[ error ] $(NAME) failed with PORT=8080, retrying with PORT=4242...$(NC)" && \
-	$(CXX) $(CXXFLAGS) -o $(NAME) $(OBJECTS) -I$(INCDIR) -g -D PORT=4242 && ./$(NAME))
-	@echo -e "$(BLUE)$(BOLD)[ ok ] $(NAME) executed successfully$(NC)"
+# The first rule is the one executed when no parameters are fed to the Makefile
+all: $(EXECUTABLE)
 
+$(EXECUTABLE): $(OBJECTS)
+	$(CXX) $(CXXFLAGS) $(OBJECTS) -o $@ 
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.cpp
-	@$(CXX) $(CXXFLAGS) -I$(INCDIR) -c $< -o $@
+$(OBJ_DIR)/%.o: src/%.cpp
+	@mkdir -p $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
+$(OBJ_DIR)/%.o: src/config/%.cpp
+	@mkdir -p $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+# To remove generated files
 clean:
-	@rm -rf $(OBJDIR)
-	@echo -e "$(VIOLET)$(BOLD)obj files deleted$(NC)"
+	rm -f $(OBJ_DIR)/*.o
 
 fclean: clean
-	@rm -f $(NAME)
-	@echo -e "$(VIOLET)$(BOLD)program deleted$(NC)"
+	rm -f $(EXECUTABLE)
 
 re: fclean all
-
-run: re
-	@./$(NAME)
-
-.PHONY: all clean fclean re run

@@ -3,19 +3,18 @@
 #include "../include/Error.hpp"
 #include "../include/parsing.hpp"
 #include "../include/Route.hpp"
-#include "../include/Cgi.hpp"
 #include "../include/MultipartFormData.hpp"
 #include "../include/htmlrequest.hpp"
 
-bool handleClientRequest(int client_fd, std::map<int, time_t>& clientActivity, std::map<int, Response>& clientDataToSend)
+void handleClientRequest(ServerConfig server, int client_fd, std::map<int, time_t>& clientActivity, Response &clientDataToSend)
 {
+
 	char 		buffer[1024] = {0};
 
 	ssize_t valread = read(client_fd, buffer, 1024);
 
 	static int	to_read = 0;
 	static bool	is_post_body  = 0;
-	bool		hasDataToSend = false;
 
 	if (valread > 0)
 	{
@@ -25,11 +24,18 @@ bool handleClientRequest(int client_fd, std::map<int, time_t>& clientActivity, s
 		if (!is_post_body)
 		{
 			request = HttpRequest(buf2, client_fd);
-			if (request.method == "POST")
+		
+			int file_fd = open("request.txt", O_CREAT | O_TRUNC | O_WRONLY, 0644);
+			if (file_fd != -1)
+			{
+				write(file_fd, buf2.c_str(), buf2.size());
+				close(file_fd);
+			}
+			if (request.getMethod() == "POST")
 			{
 				is_post_body = 1;
-				to_read = request.headers["Content-Length"].empty() ? 0 : std::atoi(request.headers["Content-Length"].c_str());
-				to_read -= request.rawBody.size();
+				to_read = request.getheaders()["Content-Length"].empty() ? 0 : std::atoi(request.getheaders()["Content-Length"].c_str());
+				to_read -= request.getRawBody().size();
 				if (to_read <= 0)
 				{
 					is_post_body = 0;
@@ -39,7 +45,7 @@ bool handleClientRequest(int client_fd, std::map<int, time_t>& clientActivity, s
 		}
 		else
 		{
-			request.rawBody += buf2;
+			request.setRawBody(request.getRawBody() + buf2);
 			to_read -= valread;
 			if (to_read <= 0)
 			{
@@ -49,7 +55,7 @@ bool handleClientRequest(int client_fd, std::map<int, time_t>& clientActivity, s
 		}
 		// determiner le serveur a utiliser
 		if (!is_post_body)
-			hasDataToSend = request.HandleRequest(clientDataToSend, client_fd);
+			request.HandleRequest(clientDataToSend, client_fd, server); // ligne qui fait tout peter
 		clientActivity[client_fd] = time(nullptr);  // Mettre à jour l'heure de la dernière activité
 
 	}
@@ -60,8 +66,8 @@ bool handleClientRequest(int client_fd, std::map<int, time_t>& clientActivity, s
 	}
 	else
 	{
-		close_and_perror("read", client_fd);
+		close (client_fd);
+		perror("read");
 		clientActivity.erase(client_fd);  // Supprimer le client de la map
 	}
-	return hasDataToSend;
 }
