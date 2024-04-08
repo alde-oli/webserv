@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Animation avec Son et Iframe</title>
+<style>
+iframe {
+  width: 100px;
+  height: 100px;
+  transition: transform 5s ease-in-out, opacity 2s ease-in-out;
+  will-change: transform, opacity;
+}
+</style>
+</head>
+<body>
+
+<button id="toggleSound">Activer le Son</button>
+
+<script>
+class ElementAnime {
+  constructor(iframeSrc, audioSrc) {
+    this.iframe = document.createElement('iframe');
+    this.iframe.src = iframeSrc;
+    this.iframe.style.position = 'absolute';
+    this.iframe.hidden = true;
+    this.iframe.frameBorder = "0";
+    this.iframe.scrolling = "no";
+    document.body.appendChild(this.iframe);
+
+    this.audio = document.createElement('audio');
+    this.audio.src = audioSrc;
+    document.body.appendChild(this.audio);
+  }
+
+  animerElement() {
+    const x = Math.random() * (window.innerWidth - this.iframe.offsetWidth);
+    const y = Math.random() * (window.innerHeight - this.iframe.offsetHeight);
+    const scale = Math.random() * 0.6 + 0.25;
+    const rotation = Math.random() * 360;
+    this.iframe.style.transform = `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;
+    this.iframe.style.opacity = 1;
+    this.iframe.hidden = false;
+  }
+
+  jouerSon() {
+    if (!this.audio.muted) {
+      this.audio.play();
+    }
+  }
+
+  apparition() {
+    this.animerElement();
+    this.jouerSon();
+    setTimeout(() => this.disparition(), Math.random() * 2500 + 500);
+  }
+
+  disparition() {
+    this.iframe.style.opacity = 0;
+    setTimeout(() => {
+      this.iframe.hidden = true;
+      this.audio.pause();
+      this.audio.currentTime = 0;
+      setTimeout(() => this.apparition(), Math.random() * 7000 + 1000);
+    }, 2000);
+  }
+}
+
+let elements = [];
+let sonActif = false;
+
+function toggleSon() {
+  sonActif = !sonActif;
+  elements.forEach(element => {
+    element.audio.muted = !sonActif;
+  });
+  document.getElementById('toggleSound').innerText = sonActif ? 'Désactiver le Son' : 'Activer le Son';
+}
+
+document.getElementById('toggleSound').addEventListener('click', toggleSon);
+
+window.onload = function() {
+  for (let i = 1; i <= 40; i++) {
+    let element = new ElementAnime('https://www.myinstants.com/instant/epic-fart-82501/embed/', 'prout.mp3');
+    elements.push(element);
+    element.apparition();
+  }
+};
+</script>
+</body>
+</html>

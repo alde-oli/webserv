@@ -1,0 +1,117 @@
+<!DOCTYPE html >
+<html>
+<head>
+<meta charset="UTF-8">
+    <title>donnez nous vos enfants</title>
+<style>
+body {
+    font-family: 'Arial', sans-serif;
+    background-image: url("https://steamuserimages-a.akamaihd.net/ugc/172666352576359097/A6505A4F56C50F2E497C73969B117014FD6D7EA5/?imw=5000&imh=5000&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=false");
+    background-size: contain    ;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+h1 {
+    color: #d900ff;
+}
+
+label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: bold;
+    font-style: italic;
+    color:rgba(0, 247, 16, 0.99)
+}
+
+form {
+    background-color: rgb(89, 141, 5);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+    width: 100%;
+    margin: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+input[type="file"] {
+    border: 1px solid #ddd;
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+input[type="submit"] {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+input[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+footer {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+}
+
+footer p {
+    font-size: 0.9em;
+}
+
+footer a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+    form {
+        margin: 10px;
+        padding: 15px;
+    }
+
+    h1 {
+        font-size: 1.5em;
+    }
+}
+
+</style>
+</head>
+<body>
+    <h1></h1>
+    <form action="/kittenland/" method="post" enctype="multipart/form-data">
+        <h1>donnez nous vos precieuses progenitures 🥰</h1>
+        <label for="fileUpload">pas trop mûres svp 🤤</label>
+        <input type="file" id="fileUpload" name="fileUpload" multiple><br><br>
+        <input type="submit" value="Téléverser">
+    </form>
+
+    <footer>
+        <p><a href="index.html">Page principale</a></p>
+    </footer>
+</body>
+</html>

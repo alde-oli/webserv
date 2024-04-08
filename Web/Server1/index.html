@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ma Page d'Accueil</title>
+    <style>
+        /* Styling for navigation bar */
+        nav {
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+        }
+        nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        nav ul li {
+            display: inline;
+            margin-right: 10px;
+        }
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+        }
+        /* Styling for footer */
+        footer {
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+        /* CSS Grid layout */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            grid-template-rows: auto;
+            gap: 10px;
+            padding: 20px;
+        }
+        /* Paragraph styles */
+        .grid-item {
+            border: 1px solid #333;
+            padding: 20px;
+            text-align: center;
+            outline: 2px solid blue; /* Outline added */
+        }
+        /* Image styles */
+        .grid-item img {
+            max-width: 100%;
+            height: auto;
+        }
+        /* Specific positioning for paragraphs */
+        .grid-item:nth-child(1) {
+            grid-column: 1;
+            grid-row: 1;
+        }
+        .grid-item:nth-child(2) {
+            grid-column: 1;
+            grid-row: 2;
+        }
+        .grid-item:nth-child(3) {
+            grid-column: 1;
+            grid-row: 3;
+        }
+
+        /* Media query for responsiveness */
+        @media screen and (min-width: 600px) {
+            .grid-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation bar -->
+    <nav>
+        <ul>
+            <li><a href="#">Accueil</a></li>
+            <li><a href="#">À propos</a></li>
+            <li><a href="#">Services</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main content using CSS Grid -->
+    <div class="grid-container">
+        <div class="grid-item">
+            <img src="https://static.fnac-static.com/multimedia/PE/Images/FR/NR/2c/25/e2/14820652/1507-1/tsp20240119083205/Pouet-pouet.jpg" alt="Image 1">
+            <h1>Bienvenue sur ma page d'accueil</h1>
+            <p>Voici quelques informations importantes...</p>
+        </div>
+        <div class="grid-item">
+            <img src="https://image.spreadshirtmedia.net/image-server/v1/compositions/T812A2PA5886PT17X71Y42D316538685W20506H20506/views/1,width=550,height=550,appearanceId=2,backgroundColor=000000,noPt=true/prout-t-shirt-premium-homme.jpg" alt="Image 2">
+            <p>Voici un autre paragraphe pour illustrer...</p>
+        </div>
+        <div class="grid-item">
+            <p>Et encore un autre paragraphe...</p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>Mentions légales</p>
+        <p>Contactez-nous: email@example.com | Tél: 123456789</p>
+    </footer>
+</body>
+</html>
