@@ -8,7 +8,7 @@
 #include	<sstream>
 #include	<ostream>
 #include	<sys/socket.h>
-#include	<sys/event.h>
+#include	<poll.h>
 #include	<sys/time.h>
 #include	<sys/types.h>
 #include	<arpa/inet.h>
@@ -24,6 +24,8 @@
 #include	<sys/stat.h>
 #include	<sys/wait.h>
 #include	<iostream>
+#include	<ctime>
+#include	<cstring>
 
 //#ifdef DEBUG
 # define ERROR(arg) std::cout << "\n\033[1;31m˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜\n🤖 ERROR\033[0;37m [File] " << __FILE__ << " [line] " << __LINE__ << " : " << arg << std::endl << "\n\033[1;31m˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜\033[0;37m\n";

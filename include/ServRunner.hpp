@@ -19,9 +19,9 @@ class ServRunner
 		//member functions//
 		////////////////////
 
-		static void	run(std::vector<ServConfig> &servers);
-		static void	acceptNew(int kq, int serverFd, std::map<int, Client> &clients, ServConfig &server);
-		static void	setSockets(std::vector<ServConfig> &servers);
-		static void	setKqueue(AutoFD &kq, std::vector<ServConfig> &servers);
-		static void	checkTimeouts(std::map<int, Client> &clients);
+	static void	run(std::vector<ServConfig> &servers);
+	static void	acceptNew(std::vector<struct pollfd> &pollfds, int serverFd, std::map<int, Client> &clients, ServConfig &server);
+	static void	setSockets(std::vector<ServConfig> &servers);
+	static void	setupPoll(std::vector<struct pollfd> &pollfds, std::vector<ServConfig> &servers);
+	static void	checkTimeouts(std::map<int, Client> &clients);
 };

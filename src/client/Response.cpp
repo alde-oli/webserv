@@ -112,14 +112,18 @@ std::string	Response::getContent()
 
 int	Response::deliver(int socket)
 {
-	std::string response = "HTTP/1.1 " + std::to_string(_code) + " " + _codes.getMsgCode(_code) + "\r\n";
+	std::stringstream codeStream;
+	codeStream << _code;
+	std::string response = "HTTP/1.1 " + codeStream.str() + " " + _codes.getMsgCode(_code) + "\r\n";
 	WRITELOG(*this)
 
 	if (_notBuilt && _code > 399)
 	{
 		std::string content = _codes.getErrPage(_code);
+		std::stringstream sizeStream;
+		sizeStream << content.size();
 		response += "Connection: close\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Length: "
-				+ std::to_string(content.size()) + "\r\n\r\n"
+				+ sizeStream.str() + "\r\n\r\n"
 				+ content;
 		_notBuilt = false;
 		_toSnd = response.size();

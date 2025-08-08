@@ -44,11 +44,11 @@ class Client
 		//member functions//
 		////////////////////
 
-		bool					read(ServConfig &server, int kq);
-		bool					write(int kq);
+	bool					read(ServConfig &server, std::vector<struct pollfd> &pollfds);
+	bool					write(std::vector<struct pollfd> &pollfds);
 
-		bool					setWriteEvent(int kq);
-		bool					unsetWriteEvent(int kq);
+	bool					setWriteEvent(std::vector<struct pollfd> &pollfds);
+	bool					unsetWriteEvent(std::vector<struct pollfd> &pollfds);
 
 		void					handleCookies(sockaddr_in addr, std::string hostname);
 

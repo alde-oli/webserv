@@ -3,62 +3,105 @@
 //main function to initiate the server, handle events, and manage clients
 void	ServRunner::run(std::vector<ServConfig> &servers)
 {
-	AutoFD kq;
-	//initiate server sockets and kqueue
+	//initiate server sockets
 	setSockets(servers);
-	setKqueue(kq, servers);
 	//map to store clients bound to their fd
 	std::map<int, Client> clients;
-	//set timeout for kqueue
-	timespec kqTimeout = {0, KEVENT_TO};
-	//stores events
-	struct kevent events[MAX_EVENTS];
+	//vector to store pollfd structures
+	std::vector<struct pollfd> pollfds;
+	//setup initial poll structures with server sockets
+	setupPoll(pollfds, servers);
+	
 	//main loop, everything happens here
 	std::cout << "✅ [Server is running...]" << std::endl;
 	while (true)
 	{
-		int event = kevent(kq.get(), NULL, 0, events, MAX_EVENTS, &kqTimeout);
+		int event = poll(&pollfds[0], pollfds.size(), POLL_TO);
 		if (event < 0)
-			{ERRLOG("kevent() fail") continue;}
-		for (int i = 0; i < event; i++)
+			{ERRLOG("poll() fail") continue;}
+		if (event == 0)
+			{ServRunner::checkTimeouts(clients); continue;} // timeout, check for inactive clients
+		
+		for (size_t i = 0; i < pollfds.size(); i++)
 		{
-			EXECLOG("event " << i << " " << events[i].ident << " " << events[i].filter << " " << events[i].flags)
+			if (pollfds[i].revents == 0)
+				continue;
+				
+			EXECLOG("event " << i << " fd:" << pollfds[i].fd << " revents:" << pollfds[i].revents)
 
-			if (events[i].flags & EV_EOF) //client closed connection
-				{clients.erase(events[i].ident);
-					CONNECTLOG("client " << events[i].ident << " closed") continue;}
+			if (pollfds[i].revents & (POLLHUP | POLLERR)) //client closed connection or error
+			{
+				if (clients.find(pollfds[i].fd) != clients.end())
+				{
+					clients.erase(pollfds[i].fd);
+					CONNECTLOG("client " << pollfds[i].fd << " closed")
+				}
+				pollfds.erase(pollfds.begin() + i);
+				i--; // adjust index after erase
+				continue;
+			}
 			//analysing events
-			else if (events[i].filter == EVFILT_READ)
+			else if (pollfds[i].revents & POLLIN)
 			{
 				EXECLOG("read event")
 				int newClient = 0;
-				//find out if new client or existing client then accept new client or read client requets
+				//find out if new client or existing client then accept new client or read client requests
 				for (std::vector<ServConfig>::iterator it = servers.begin(); it != servers.end(); it++)
-					{if (events[i].ident == static_cast<uintptr_t>(it->getSocketFd()))
-						{ServRunner::acceptNew(kq.get(), it->getSocketFd(), clients, *it); newClient = 1; break;}} //accept new client
+				{
+					if (pollfds[i].fd == it->getSocketFd())
+					{
+						ServRunner::acceptNew(pollfds, it->getSocketFd(), clients, *it); 
+						newClient = 1; 
+						break;
+					}
+				} //accept new client
 				if (!newClient)
-					{for (std::vector<ServConfig>::iterator it = servers.begin(); it != servers.end(); it++)
-						{if (it->getSocketFd() == clients[events[i].ident].getServFd())
+				{
+					for (std::vector<ServConfig>::iterator it = servers.begin(); it != servers.end(); it++)
+					{
+						if (it->getSocketFd() == clients[pollfds[i].fd].getServFd())
 						{
-							if (clients[events[i].ident].read(*it, kq.get())) //read client request, return 1 if client needs to be closed
-								{if (clients[events[i].ident].isResponse())
-									{clients[events[i].ident].setWriteEvent(kq.get());}
+							if (clients[pollfds[i].fd].read(*it, pollfds)) //read client request, return 1 if client needs to be closed
+							{
+								if (clients[pollfds[i].fd].isResponse())
+								{
+									clients[pollfds[i].fd].setWriteEvent(pollfds);
+								}
 								else
-									{clients.erase(events[i].ident); CONNECTLOG("client " << events[i].ident << " closed") break;}}
+								{
+									clients.erase(pollfds[i].fd); 
+									CONNECTLOG("client " << pollfds[i].fd << " closed")
+									pollfds.erase(pollfds.begin() + i);
+									i--; // adjust index after erase
+									break;
+								}
+							}
 							break;
-			}	}	}	}
-			else if (events[i].filter == EVFILT_WRITE)
-				{if (clients[events[i].ident].write(kq.get()))
-					{clients.erase(events[i].ident); CONNECTLOG("client " << events[i].ident << " closed")}
-				EXECLOG("write event")} //write client response
+						}
+					}
+				}
+			}
+			else if (pollfds[i].revents & POLLOUT)
+			{
+				if (clients[pollfds[i].fd].write(pollfds))
+				{
+					clients.erase(pollfds[i].fd); 
+					CONNECTLOG("client " << pollfds[i].fd << " closed")
+					pollfds.erase(pollfds.begin() + i);
+					i--; // adjust index after erase
+				}
+				EXECLOG("write event") //write client response
+			}
 			else
 				ERRLOG("unknown event")
-			ServRunner::checkTimeouts(clients); //check last clients activity
-}	}	}
+		}
+		ServRunner::checkTimeouts(clients); //check last clients activity
+	}
+}
 
 
 //accepts new client and adds it to the clients map
-void	ServRunner::acceptNew(int kq, int serverFd, std::map<int, Client> &clients, ServConfig &server)
+void	ServRunner::acceptNew(std::vector<struct pollfd> &pollfds, int serverFd, std::map<int, Client> &clients, ServConfig &server)
 {
 	(void)server;
 	EXECLOG("new connection request")
@@ -82,15 +125,12 @@ void	ServRunner::acceptNew(int kq, int serverFd, std::map<int, Client> &clients,
 	if (setsockopt(clientFd, SOL_SOCKET, SO_SNDTIMEO, (const char*)&sndTimeout, sizeof(sndTimeout)) < 0)
 		{ERRLOG("setsockopt(SO_SNDTIMEO) failed") close(clientFd); return;}
 
-	//add client read event to kqueue
-	struct kevent ev;
-	EV_SET(&ev, clientFd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-	if (kevent(kq, &ev, 1, NULL, 0, NULL) < 0)
-		{ERRLOG("kevent() failed") close(clientFd); return;}
-	//add client write event to kqueue
-	EV_SET(&ev, clientFd, EVFILT_WRITE, EV_ADD | EV_DISABLE, 0, 0, NULL);
-	if (kevent(kq, &ev, 1, NULL, 0, NULL) < 0)
-		{ERRLOG("kevent() failed") close(clientFd); return;}
+	//add client read event to poll
+	struct pollfd clientPollfd;
+	clientPollfd.fd = clientFd;
+	clientPollfd.events = POLLIN; // initially only interested in read events
+	clientPollfd.revents = 0;
+	pollfds.push_back(clientPollfd);
 
 	//add client to clients map
 	clients[clientFd] = Client(-1, clientAddr, serverFd);
@@ -137,25 +177,22 @@ void	ServRunner::setSockets(std::vector<ServConfig> &servers)
 			{CERRANDEXIT std::cerr << "setsockopt(SO_RCVTIMEO) failed for " << it->getId() << ". Exiting program." << std::endl; exit(1);}
 		//bind and listen
 		if (bind(it->getSocketFd(), reinterpret_cast<const struct sockaddr*>(&it->getAddr()), sizeof(it->getAddr())) < 0)
-			{ std::cerr << "bind() failed for " << it->getId() << ". exiting program"  << std::endl; exit(1);}
+			{ perror("bind() failed"); std::cerr << "bind() failed for " << it->getId() << ". exiting program"  << std::endl; exit(1);}
 		if (listen(it->getSocketFd(), 20) < 0)
 			{CERRANDEXIT std::cerr << "listen() failed for " << it->getId() << ". exiting program" << std::endl; exit(1);}
 }	}
 
 
-//initiates kqueue for read and write events and adds server sockets to it
-void	ServRunner::setKqueue(AutoFD &kq, std::vector<ServConfig> &servers)
+//initiates poll structures and adds server sockets to it
+void	ServRunner::setupPoll(std::vector<struct pollfd> &pollfds, std::vector<ServConfig> &servers)
 {
-	//init kqueue
-	kq.set(kqueue());
-	if (kq.get() < 0)
-		{CERRANDEXIT std::cerr << "kqueue() failed. exiting program" << std::endl; exit(1);}
-	//add server sockets to kqueue
+	//add server sockets to poll
 	for (std::vector<ServConfig>::iterator it = servers.begin(); it != servers.end(); it++)
 	{
-		struct kevent ev;
-		//add read event only because servers_fd just accept new clients
-		EV_SET(&ev, it->getSocketFd(), EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-		if (kevent(kq.get(), &ev, 1, NULL, 0, NULL) < 0)
-			{CERRANDEXIT std::cerr << "kevent() failed for " << it->getId() << ". exiting program" << std::endl; exit(1);}
-}	}
+		struct pollfd serverPollfd;
+		serverPollfd.fd = it->getSocketFd();
+		serverPollfd.events = POLLIN; // only interested in read events for server sockets (new connections)
+		serverPollfd.revents = 0;
+		pollfds.push_back(serverPollfd);
+	}
+}

@@ -16,8 +16,8 @@ void signalHandler(int signum);
 //timeouts
 //acceptable to for inactive are 60-120s
 #define INACTIVE_TO 360
-//acceptable to for kevent are 3-10s
-#define KEVENT_TO 60
+//acceptable to for poll are 3-10s (in milliseconds)
+#define POLL_TO 60000
 //acceptable to for sread and write are 5-30s
 #define SND_TO 60
 #define RECEPT_TO 60

@@ -283,6 +283,9 @@ void	ServConfig::setMain(std::fstream &file, std::string &line)
 	if (line.empty() || line[0] != '[' || line[line.length() - 1] != ']')
 		{CERRANDEXIT CerrExit("Error: invalid server ID line: ", line);}
 	this->_id = line.substr(1, line.length() - 2);
+	
+	// Initialize the address family
+	this->_addr.sin_family = AF_INET;
 
 	while (std::getline(file, line) && line[0] != '[')
 	{
@@ -336,7 +339,7 @@ void	ServConfig::checkValidity()
 // Main function to parse the server configuration
 std::vector<ServConfig>		ServerParsing(std::string filename)
 {
-	std::fstream file(filename);
+	std::fstream file(filename.c_str());
 	
 	if (!file.is_open())
 		{CERRANDEXIT CerrExit("Error: Failed to open file: ", filename);}

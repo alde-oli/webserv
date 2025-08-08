@@ -2,7 +2,7 @@
 NAME = webserv
 
 # Compilateur
-CXX = clang++  # Utilisation de clang++ pour une meilleure compatibilité avec ASan
+CXX = c++  # Utilisation de clang++ pour une meilleure compatibilité avec ASan
 
 # Drapeaux de compilation
 CXXFLAGS = -Wall -Werror -Wextra -std=c++98 #-fsanitize=address -fno-omit-frame-pointer

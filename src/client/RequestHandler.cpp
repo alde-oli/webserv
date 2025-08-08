@@ -30,7 +30,7 @@ static bool rCgi(Request &request, Response &response, ServConfig &server)
     std::string path = request["uri"].substr(0, request["uri"].find_last_of('/') + 1);
     Route route = server.getRoute(path);
     std::string cgiName = request["uri"].substr(request["uri"].find_last_of('/') + 1, request["uri"].find_last_of('?') - request["uri"].find_last_of('/') - 1);
-    std::string cgiPath = "/Users/alde-oli/Desktop/webserv_revival/" + route.getRoot() + cgiName;
+    std::string cgiPath = route.getRoot() + cgiName;
 
     if (access(cgiPath.c_str(), X_OK) == -1)
 	{
@@ -52,7 +52,7 @@ static bool rCgi(Request &request, Response &response, ServConfig &server)
     for (std::map<std::string, std::string>::iterator it = envMap.begin(); it != envMap.end(); ++it) {
         std::string envVar = it->first + "=" + it->second;
         char* envCStr = new char[envVar.size() + 1];
-        std::strcpy(envCStr, envVar.c_str());
+        strcpy(envCStr, envVar.c_str());
         env.push_back(envCStr);
     }
     env.push_back(NULL);
@@ -168,7 +168,7 @@ bool	RequestHandler::rGet(Request &request, Response &response, ServConfig &serv
 			response.setContentType("text/html; charset=UTF-8");
 			std::string pagePath = route.getDefaultPage();
 
-			std::ifstream file(pagePath);
+			std::ifstream file(pagePath.c_str());
 			if (!file.is_open())
 				{response.setCode(500); return true;}
 
@@ -199,7 +199,7 @@ bool	RequestHandler::rGet(Request &request, Response &response, ServConfig &serv
 	if (isDirectory(toGet))
 		{response.setCode(404); return true;}
 
-	std::ifstream file(toGet, std::ios::binary | std::ios::in);
+	std::ifstream file(toGet.c_str(), std::ios::binary | std::ios::in);
 	if (!file.is_open())
 		{response.setCode(404); return true;}
 	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
@@ -252,7 +252,7 @@ bool	RequestHandler::rPost(Request &request, Response &response, ServConfig &ser
 	for (size_t i = 0; i < files.size(); i++)
 	{
 		std::string path = route.getDownloadDir() + files[i]._fileName;
-		std::ofstream file(path, std::ios::binary | std::ios::trunc | std::ios::out);
+		std::ofstream file(path.c_str(), std::ios::binary | std::ios::trunc | std::ios::out);
 		if (!file.is_open())
 			{response.setCode(500); return true;}
 		file.write(files[i]._data.c_str(), files[i]._data.size());

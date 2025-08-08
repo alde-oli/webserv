@@ -100,7 +100,9 @@ void	Client::printRequest()
 bool isCorrectHost(sockaddr_in addr, std::string servHostname, std::string host)
 {
 	std::string ip = inet_ntoa(addr.sin_addr);
-	ip += ":" + std::to_string(ntohs(addr.sin_port));
+	std::stringstream ss;
+	ss << ntohs(addr.sin_port);
+	ip += ":" + ss.str();
 	if (host == servHostname || host == ip)
 		return true;
 	
@@ -110,7 +112,7 @@ bool isCorrectHost(sockaddr_in addr, std::string servHostname, std::string host)
 
 //reads the client request and processes it into _response
 //return: true if client need to be closed else false
-bool Client::read(ServConfig &server, int kq)
+bool Client::read(ServConfig &server, std::vector<struct pollfd> &pollfds)
 {
 	updateActivity();
 
@@ -169,7 +171,7 @@ bool Client::read(ServConfig &server, int kq)
 
 				bool ret = !_request.handle(server, _response);
 				_request.clear();
-				setWriteEvent(kq);
+				setWriteEvent(pollfds);
 				return ret;
 			}
 		}
@@ -192,7 +194,7 @@ bool Client::read(ServConfig &server, int kq)
 			bool ret = !_request.handle(server, _response);
 			_rawRequest = _rawRequest.substr(_bodyToRead);
 			_request.clear();
-			setWriteEvent(kq);
+			setWriteEvent(pollfds);
 			return ret;
 		}
 		bytesRead = recv(_clientFd.get(), buff, BUF_SIZE, 0);
@@ -213,7 +215,7 @@ bool Client::read(ServConfig &server, int kq)
 			bool ret = !_request.handle(server, _response);
 			_rawRequest.clear();
 			_request.clear();
-			setWriteEvent(kq);
+			setWriteEvent(pollfds);
 			return ret;
 		}
 	}
@@ -223,7 +225,7 @@ bool Client::read(ServConfig &server, int kq)
 
 //writes the response to the client
 //return: true if client needs to be closed, else false
-bool	Client::write(int kq)
+bool	Client::write(std::vector<struct pollfd> &pollfds)
 {
 	WRITELOG(_response)
 	updateActivity();
@@ -234,47 +236,56 @@ bool	Client::write(int kq)
 	int ret = _response.deliver(_clientFd.get());
 	if (ret)
 	{
-		unsetWriteEvent(kq);
+		unsetWriteEvent(pollfds);
 		_response.clear();
 		return true;
 	}
 	return false;
 }
 
-//set WriteEvent to notify kevent we will snd data to client in next kevent loop
-bool Client::setWriteEvent(int kq)
+//set WriteEvent to notify poll we will send data to client in next poll loop
+bool Client::setWriteEvent(std::vector<struct pollfd> &pollfds)
 {
-	struct kevent evWrite;
-	EV_SET(&evWrite, _clientFd.get(), EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-	if (kevent(kq, &evWrite, 1, NULL, 0, NULL) < 0) {
-		{CERRANDEXIT std::cerr << "error while registering write event, closing client" << std::endl << *this;}
-		return true; // Signaler une erreur
+	// Find the pollfd entry for this client
+	for (size_t i = 0; i < pollfds.size(); i++)
+	{
+		if (pollfds[i].fd == _clientFd.get())
+		{
+			// Add POLLOUT to the events we're interested in
+			pollfds[i].events |= POLLOUT;
+			_writeEventSet = true;
+			return false;
+		}
 	}
-	_writeEventSet = true;
-	
-	// struct kevent evRead;
-	// EV_SET(&evRead, _clientFd.get(), EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-	// kevent(kq, &evRead, 1, NULL, 0, NULL);
-
-	return false;
+	// If we get here, the client fd wasn't found in pollfds
+	{CERRANDEXIT std::cerr << "error while registering write event, client fd not found" << std::endl << *this;}
+	return true; // Signal an error
 }
 
 //end write event
-bool Client::unsetWriteEvent(int kq)
+bool Client::unsetWriteEvent(std::vector<struct pollfd> &pollfds)
 {
 	_response.clear();
-	struct kevent evWrite;
-	EV_SET(&evWrite, _clientFd.get(), EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-	if (_writeEventSet == true && kevent(kq, &evWrite, 1, NULL, 0, NULL) < 0)
+	
+	// Find the pollfd entry for this client and remove POLLOUT
+	for (size_t i = 0; i < pollfds.size(); i++)
 	{
-		{CERRANDEXIT std::cerr << "error while unregistering write event, closing client" << std::endl << *this;}
+		if (pollfds[i].fd == _clientFd.get())
+		{
+			// Remove POLLOUT from the events we're interested in
+			pollfds[i].events &= ~POLLOUT;
+			_writeEventSet = false;
+			return true;
+		}
+	}
+	
+	// If we get here, the client fd wasn't found in pollfds
+	if (_writeEventSet == true)
+	{
+		{CERRANDEXIT std::cerr << "error while unregistering write event, client fd not found" << std::endl << *this;}
 		return false;
 	}
 	_writeEventSet = false;
-	// struct kevent evRead;
-	// EV_SET(&evRead, _clientFd.get(), EVFILT_READ, EV_DELETE, 0, 0, NULL);
-	// kevent(kq, &evRead, 1, NULL, 0, NULL);
-
 	return true;
 }
 
