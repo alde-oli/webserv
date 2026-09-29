@@ -1,0 +1,7 @@
+# build
+/obj/
+/webserv
+# runtime logs
+log/*.log
+# macOS
+.DS_Store

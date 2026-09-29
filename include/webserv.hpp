@@ -28,4 +28,4 @@ void signalHandler(int signum);
 #define BUF_SIZE 4096
 
 #define LOCALHOST "127.0.0.1"
-#define EXTERNAL_IP "11.10.14.5"
+#define EXTERNAL_IP ""
