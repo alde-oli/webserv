@@ -1,17 +1,7 @@
 <!-- YoRHa archive -->
-```
-▸ YoRHa // ARCHIVE — WEBSERV
-```
+<p align="center"><img src=".github/yorha-header.svg" width="100%" alt="YoRHa // ARCHIVE — webserv · Type: 42 Lausanne common-core project · team · Stack: C++98 · POSIX sockets · poll() · fork/execve CGI · Status: ■ COMPLETE"></p>
 
 An HTTP/1.1 web server written from scratch in C++98: one non-blocking event loop, virtual hosts, uploads, directory listing and CGI, all driven by an INI config file.
-
-![C++98](https://img.shields.io/badge/C++-98-4e4b42?style=flat-square) ![poll](https://img.shields.io/badge/I%2FO-poll()-dad4bb?style=flat-square)
-
-| UNIT DATA | |
-|---|---|
-| Type | 42 Lausanne common-core project · team |
-| Stack | C++98 · POSIX sockets · `poll()` · fork/execve CGI |
-| Status | ■ COMPLETE |
 
 ## ▸ Overview
 `webserv` listens on several `host:port` pairs at once. Every socket, listening or client, sits in a single `poll()` loop and is set to non-blocking, so no thread is spawned per connection. Requests are parsed incrementally (headers first, then a body bounded by `Content-Length`). They are routed by the `Host` header and the URI prefix, then answered from static files, a generated directory listing, an upload handler or a CGI child process. The loop originally used `kqueue` (macOS) and was later ported to `poll()` so it also builds and runs on Linux.
