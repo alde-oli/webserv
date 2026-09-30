@@ -1,5 +1,5 @@
 <!-- YoRHa archive -->
-<p align="center"><img src=".github/yorha-header.svg" width="100%" alt="YoRHa // ARCHIVE — webserv · Type: 42 Lausanne common-core project · team · Stack: C++98 · POSIX sockets · poll() · fork/execve CGI · Status: ■ COMPLETE"></p>
+<p align="center"><img src=".github/yorha-header.svg" width="100%" alt="YoRHa // ARCHIVE — webserv · Type: 42 Lausanne common-core project · team of 2 · Stack: C++98 · POSIX sockets · poll() · fork/execve CGI · Status: ■ COMPLETE"></p>
 
 An HTTP/1.1 web server written from scratch in C++98: one non-blocking event loop, virtual hosts, uploads, directory listing and CGI, all driven by an INI config file.
 
@@ -33,6 +33,8 @@ Then browse `http://127.0.0.1:8080/`, or try it with curl:
 curl http://127.0.0.1:8080/img/                               # directory listing
 curl "http://127.0.0.1:8080/cgi/addition.py?num1=2&num2=3"    # Python CGI
 ```
+
+<p align="center"><img src=".github/session.svg" width="100%" alt="Responses captured from ./webserv config/miaou.ini: GET / 200 OK with session cookie; GET /img/ 200 autoindex listing; GET /cgi/addition.py 200 Python CGI; GET /nope 404 custom error page; PUT / 405 Method Not Allowed"></p>
 
 ### Config format
 ```ini
@@ -74,7 +76,7 @@ Web/                   demo sites (DreamWorld, Server1, Server2) and CGI scripts
 ```
 
 ## ▸ Squad
-Built as a team project at 42 Lausanne. This repository is my copy of the final code ([alde-oli](https://github.com/alde-oli)); the original per-person history was not kept.
+Built at 42 Lausanne by a team of two: **Cecile** ([cduffaut](https://github.com/cduffaut)) and **Alexandre** ([alde-oli](https://github.com/alde-oli)). This repository is my copy of the final code; the original per-person history was not kept.
 
 ## ▸ Notes
 - The commit history is a final snapshot pushed after the project ended, so it does not show who wrote which part.
